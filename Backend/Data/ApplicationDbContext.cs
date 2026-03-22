@@ -8,17 +8,17 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options) { }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<Job> Jobs { get; set; }
-    public DbSet<Social> Socials { get; set; }
-    public DbSet<Class> Classes { get; set; }
-    public DbSet<Project> Projects { get; set; }
-    public DbSet<Topic> Topics { get; set; }
-    public DbSet<ProjectMedia> ProjectMedias { get; set; }
-    public DbSet<Event> Events { get; set; }
-    public DbSet<EventRegistration> EventRegistrations { get; set; }
-    public DbSet<EventMedia> EventMedias { get; set; }
-    public DbSet<Award> Awards { get; set; }
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Job> Jobs { get; set; } = null!;
+    public DbSet<Social> Socials { get; set; } = null!;
+    public DbSet<Class> Classes { get; set; } = null!;
+    public DbSet<Project> Projects { get; set; } = null!;
+    public DbSet<Topic> Topics { get; set; } = null!;
+    public DbSet<ProjectMedia> ProjectMedias { get; set; } = null!;
+    public DbSet<Event> Events { get; set; } = null!;
+    public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
+    public DbSet<EventMedia> EventMedias { get; set; } = null!;
+    public DbSet<Award> Awards { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

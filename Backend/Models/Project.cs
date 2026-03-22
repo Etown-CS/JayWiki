@@ -15,5 +15,5 @@ public class Project
     // Navigation properties
     public Class Class { get; set; } = null!;
     public ICollection<Topic> Topics { get; set; } = new List<Topic>();
-    public ICollection<ProjectMedia> ProjectMedias { get; set; } = new List<ProjectMedia>();
+    public ICollection<ProjectMedia> ProjectMedia { get; set; } = new List<ProjectMedia>();
 }

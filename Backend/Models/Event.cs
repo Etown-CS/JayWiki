@@ -10,6 +10,6 @@ public class Event
 
     // Navigation properties
     public ICollection<EventRegistration> EventRegistrations { get; set; } = new List<EventRegistration>();
-    public ICollection<EventMedia> EventMedias { get; set; } = new List<EventMedia>();
+    public ICollection<EventMedia> EventMedia { get; set; } = new List<EventMedia>();
     public ICollection<Award> Awards { get; set; } = new List<Award>();
 }

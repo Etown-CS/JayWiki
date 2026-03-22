@@ -5,9 +5,9 @@ public class User
     public int UserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string AuthProvider { get; set; } = string.Empty; // "google" or "microsoft"
+    public string AuthProvider { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; }
 
     // Navigation properties
     public ICollection<Job> Jobs { get; set; } = new List<Job>();

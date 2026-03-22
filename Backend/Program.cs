@@ -35,7 +35,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAngularDev"); // Must be BEFORE UseAuthorization
 
-app.UseAuthorization();
+// app.UseAuthorization();
 
 app.MapControllers();
 
