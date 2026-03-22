@@ -136,7 +136,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.ToTable("EventMedias");
+                    b.ToTable("EventMedia");
                 });
 
             modelBuilder.Entity("Backend.Models.EventRegistration", b =>
@@ -265,7 +265,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("ProjectMedias");
+                    b.ToTable("ProjectMedia");
                 });
 
             modelBuilder.Entity("Backend.Models.Social", b =>
@@ -381,7 +381,7 @@ namespace Backend.Migrations
             modelBuilder.Entity("Backend.Models.EventMedia", b =>
                 {
                     b.HasOne("Backend.Models.Event", "Event")
-                        .WithMany("EventMedias")
+                        .WithMany("EventMedia")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -433,7 +433,7 @@ namespace Backend.Migrations
             modelBuilder.Entity("Backend.Models.ProjectMedia", b =>
                 {
                     b.HasOne("Backend.Models.Project", "Project")
-                        .WithMany("ProjectMedias")
+                        .WithMany("ProjectMedia")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -472,14 +472,14 @@ namespace Backend.Migrations
                 {
                     b.Navigation("Awards");
 
-                    b.Navigation("EventMedias");
+                    b.Navigation("EventMedia");
 
                     b.Navigation("EventRegistrations");
                 });
 
             modelBuilder.Entity("Backend.Models.Project", b =>
                 {
-                    b.Navigation("ProjectMedias");
+                    b.Navigation("ProjectMedia");
 
                     b.Navigation("Topics");
                 });

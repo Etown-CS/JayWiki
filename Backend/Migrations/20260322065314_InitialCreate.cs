@@ -67,7 +67,7 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "EventMedias",
+                name: "EventMedia",
                 columns: table => new
                 {
                     EventMediaId = table.Column<int>(type: "int", nullable: false)
@@ -78,9 +78,9 @@ namespace Backend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_EventMedias", x => x.EventMediaId);
+                    table.PrimaryKey("PK_EventMedia", x => x.EventMediaId);
                     table.ForeignKey(
-                        name: "FK_EventMedias_Events_EventId",
+                        name: "FK_EventMedia_Events_EventId",
                         column: x => x.EventId,
                         principalTable: "Events",
                         principalColumn: "EventId",
@@ -212,7 +212,7 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProjectMedias",
+                name: "ProjectMedia",
                 columns: table => new
                 {
                     ProjectMediaId = table.Column<int>(type: "int", nullable: false)
@@ -223,9 +223,9 @@ namespace Backend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProjectMedias", x => x.ProjectMediaId);
+                    table.PrimaryKey("PK_ProjectMedia", x => x.ProjectMediaId);
                     table.ForeignKey(
-                        name: "FK_ProjectMedias_Projects_ProjectId",
+                        name: "FK_ProjectMedia_Projects_ProjectId",
                         column: x => x.ProjectId,
                         principalTable: "Projects",
                         principalColumn: "ProjectId",
@@ -263,8 +263,8 @@ namespace Backend.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EventMedias_EventId",
-                table: "EventMedias",
+                name: "IX_EventMedia_EventId",
+                table: "EventMedia",
                 column: "EventId");
 
             migrationBuilder.CreateIndex(
@@ -284,8 +284,8 @@ namespace Backend.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProjectMedias_ProjectId",
-                table: "ProjectMedias",
+                name: "IX_ProjectMedia_ProjectId",
+                table: "ProjectMedia",
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
@@ -317,7 +317,7 @@ namespace Backend.Migrations
                 name: "Awards");
 
             migrationBuilder.DropTable(
-                name: "EventMedias");
+                name: "EventMedia");
 
             migrationBuilder.DropTable(
                 name: "EventRegistrations");
@@ -326,7 +326,7 @@ namespace Backend.Migrations
                 name: "Jobs");
 
             migrationBuilder.DropTable(
-                name: "ProjectMedias");
+                name: "ProjectMedia");
 
             migrationBuilder.DropTable(
                 name: "Socials");

@@ -14,10 +14,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Class> Classes { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<Topic> Topics { get; set; } = null!;
-    public DbSet<ProjectMedia> ProjectMedias { get; set; } = null!;
+    public DbSet<ProjectMedia> ProjectMedia { get; set; } = null!;
     public DbSet<Event> Events { get; set; } = null!;
     public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
-    public DbSet<EventMedia> EventMedias { get; set; } = null!;
+    public DbSet<EventMedia> EventMedia { get; set; } = null!;
     public DbSet<Award> Awards { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
