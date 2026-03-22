@@ -26,3 +26,5 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+Backend/appsettings.Development.json
+Backend/bin/Debug/net10.0/appsettings.Development.json
