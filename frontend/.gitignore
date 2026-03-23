@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Angular specific
+/src/environments/environment.ts
+/src/environments/environment.development.ts
