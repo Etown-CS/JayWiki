@@ -7,7 +7,9 @@
     "start": "ng serve",
     "prebuild": "node set-env.mjs",
     "build": "ng build",
+    "prewatch": "node set-env.mjs",
     "watch": "ng build --watch --configuration development",
+    "pretest": "node set-env.mjs",
     "test": "ng test"
   },
   "private": true,

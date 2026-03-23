@@ -54,15 +54,25 @@ builder.Services
             {
                 var token = authHeader["Bearer ".Length..].Trim();
                 var handler = new JwtSecurityTokenHandler();
+
                 if (handler.CanReadToken(token))
                 {
-                    var issuer = handler.ReadJwtToken(token).Issuer;
-                    if (issuer.Contains("accounts.google.com",
-                            StringComparison.OrdinalIgnoreCase))
-                        return "Google";
-                    if (issuer.Contains("login.microsoftonline.com",
-                            StringComparison.OrdinalIgnoreCase))
-                        return "Microsoft";
+                    try
+                    {
+                        var issuer = handler.ReadJwtToken(token).Issuer;
+
+                        if (issuer.Contains("accounts.google.com",
+                                StringComparison.OrdinalIgnoreCase))
+                            return "Google";
+
+                        if (issuer.Contains("login.microsoftonline.com",
+                                StringComparison.OrdinalIgnoreCase))
+                            return "Microsoft";
+                    }
+                    catch
+                    {
+                        // Malformed token — fall through to safe default
+                    }
                 }
             }
             return "Google";
@@ -74,7 +84,7 @@ builder.Services
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer   = true,
-            ValidIssuer      = "https://accounts.google.com",
+            ValidIssuers     = ["https://accounts.google.com", "accounts.google.com"],
             ValidateAudience = true,
             ValidAudience    = googleClientId,
             ValidateLifetime = true,
@@ -88,7 +98,8 @@ builder.Services
             ValidateIssuer   = true,
             ValidIssuer      = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0",
             ValidateAudience = true,
-            ValidAudience    = microsoftClientId,
+            // Accept both the client ID audience (ID token) and the API scope audience (access token)
+            ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
             ValidateLifetime = true,
         };
     });
@@ -100,7 +111,6 @@ var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>();
 
-// Fail fast if no origins configured, with a safe dev fallback
 if (allowedOrigins is null || allowedOrigins.Length == 0)
 {
     if (builder.Environment.IsDevelopment())

@@ -17,7 +17,8 @@ const microsoftConfig: AuthConfig = {
   issuer: `https://login.microsoftonline.com/${environment.microsoft.tenantId}/v2.0`,
   clientId: environment.microsoft.clientId,
   redirectUri: window.location.origin + '/index.html',
-  scope: 'openid profile email',
+  // Include your API scope so Microsoft issues a JWT access token for your API
+  scope: `openid profile email ${environment.microsoft.apiScope}`,
   responseType: 'code',
   strictDiscoveryDocumentValidation: false,
   showDebugInformation: !environment.production,
@@ -47,7 +48,7 @@ export class AuthService {
     const config = lastProvider === 'microsoft' ? microsoftConfig : googleConfig;
     this.oauthService.configure(config);
     await this.oauthService.loadDiscoveryDocument();
-    this.oauthService.tryLoginCodeFlow();
+    await this.oauthService.tryLoginCodeFlow();
   }
 
   logout(): void {
