@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
 
 const googleConfig: AuthConfig = {
   issuer: 'https://accounts.google.com',
