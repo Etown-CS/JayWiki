@@ -13,19 +13,30 @@ if (File.Exists(envPath))
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Helper: fail fast on missing or placeholder config ───────────────────────
+static string GetRequiredConfig(WebApplicationBuilder b, string key)
+{
+    var value = b.Configuration[key];
+    if (string.IsNullOrWhiteSpace(value) ||
+        (value!.Length >= 2 && value[0] == '%' && value[^1] == '%'))
+    {
+        throw new InvalidOperationException(
+            $"Required configuration '{key}' is missing or still set to a placeholder. " +
+            "Ensure it is configured via .env or Azure Application Settings before starting.");
+    }
+    return value;
+}
+
 // ── Database ──────────────────────────────────────────────────────────────────
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException(
-        "The connection string 'DefaultConnection' is not configured.");
+var connectionString = GetRequiredConfig(builder, "ConnectionStrings:DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // ── Authentication — dual JWT Bearer (Google + Microsoft) ─────────────────────
-var googleClientId    = builder.Configuration["Authentication:Google:ClientId"]!;
-var microsoftClientId = builder.Configuration["Authentication:Microsoft:ClientId"]!;
-var microsoftTenantId = builder.Configuration["Authentication:Microsoft:TenantId"]!;
+var googleClientId    = GetRequiredConfig(builder, "Authentication:Google:ClientId");
+var microsoftClientId = GetRequiredConfig(builder, "Authentication:Microsoft:ClientId");
+var microsoftTenantId = GetRequiredConfig(builder, "Authentication:Microsoft:TenantId");
 
 builder.Services
     .AddAuthentication(options =>
@@ -87,7 +98,23 @@ builder.Services.AddAuthorization();
 // ── CORS ──────────────────────────────────────────────────────────────────────
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? [];
+    .Get<string[]>();
+
+// Fail fast if no origins configured, with a safe dev fallback
+if (allowedOrigins is null || allowedOrigins.Length == 0)
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        allowedOrigins = ["http://localhost:4200"];
+        Console.WriteLine("⚠️  No CORS origins configured — falling back to http://localhost:4200 (Development only).");
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Required configuration 'Cors:AllowedOrigins' is missing or empty. " +
+            "Ensure it is configured before starting in non-Development environments.");
+    }
+}
 
 builder.Services.AddCors(options =>
 {
