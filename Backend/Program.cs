@@ -108,12 +108,15 @@ builder.Services
         options.Authority = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0";
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer   = true,
-            ValidIssuer      = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0",
+            ValidateIssuer   = false,  // Disable to accept "common" tokens
             ValidateAudience = true,
             ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
             ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,  // Still validate token signature
         };
+        
+        // Accept tokens from common endpoint
+        options.MetadataAddress = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration";
     });
 
 builder.Services.AddAuthorization();

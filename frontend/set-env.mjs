@@ -49,6 +49,7 @@ export const environment = {
   apiBaseUrl: ${get('NG_API_BASE_URL', 'http://localhost:5227')},
   google: {
     clientId: ${get('GOOGLE_CLIENT_ID')},
+    clientSecret: ${get('GOOGLE_CLIENT_SECRET')},
   },
   microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
@@ -64,6 +65,7 @@ export const environment = {
   apiBaseUrl: ${get('NG_API_BASE_URL')},
   google: {
     clientId: ${get('GOOGLE_CLIENT_ID')},
+    clientSecret: ${get('GOOGLE_CLIENT_SECRET')},
   },
   microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
