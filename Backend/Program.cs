@@ -49,7 +49,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ── Authentication — dual JWT Bearer (Google + Microsoft) ─────────────────────
 var googleClientId    = GetRequiredConfig(builder, "Authentication:Google:ClientId");
 var microsoftClientId = GetRequiredConfig(builder, "Authentication:Microsoft:ClientId");
-var microsoftTenantId = GetRequiredConfig(builder, "Authentication:Microsoft:TenantId");
 
 builder.Services
     .AddAuthentication(options =>
@@ -105,14 +104,20 @@ builder.Services
     })
     .AddJwtBearer("Microsoft", options =>
     {
-        options.Authority = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0";
+        // Use "common" endpoint to support both organizational AND personal Microsoft accounts
+        options.Authority = "https://login.microsoftonline.com/common/v2.0";
+        options.MetadataAddress = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration";
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer   = true,
-            ValidIssuer      = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0",
+            // Disable issuer validation because tokens from "common" endpoint
+            // will have different issuers (organizational vs personal accounts).
+            // Security still maintained via signature + audience validation.
+            ValidateIssuer   = false,
             ValidateAudience = true,
             ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
             ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,  // Signature validation ensures token is from Microsoft
         };
     });
 

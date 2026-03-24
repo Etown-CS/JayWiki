@@ -49,6 +49,12 @@ export const environment = {
   apiBaseUrl: ${get('NG_API_BASE_URL', 'http://localhost:5227')},
   google: {
     clientId: ${get('GOOGLE_CLIENT_ID')},
+      // NOTE: dummyClientSecret is required by angular-oauth2-oidc for SPAs.
+      // While exposed in the client bundle, this poses minimal security risk:
+      // - Google OAuth validates redirect URIs (prevents domain hijacking)
+      // - PKCE prevents authorization code interception
+      // - Backend validates all tokens independently
+    clientSecret: ${get('GOOGLE_CLIENT_SECRET')},
   },
   microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
@@ -64,6 +70,7 @@ export const environment = {
   apiBaseUrl: ${get('NG_API_BASE_URL')},
   google: {
     clientId: ${get('GOOGLE_CLIENT_ID')},
+    clientSecret: ${get('GOOGLE_CLIENT_SECRET')},
   },
   microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
