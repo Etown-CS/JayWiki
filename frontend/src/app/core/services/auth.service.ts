@@ -35,8 +35,7 @@ const microsoftConfig: AuthConfig = {
   sessionChecksEnabled: false,
   // Allow HTTP only for local development
   requireHttps: environment.production,
-  // Skip issuer check only in development (common endpoint causes issuer mismatch)
-  skipIssuerCheck: !environment.production,
+  skipIssuerCheck: true,
 };
 
 @Injectable({ providedIn: 'root' })

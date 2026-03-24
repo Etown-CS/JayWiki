@@ -49,7 +49,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ── Authentication — dual JWT Bearer (Google + Microsoft) ─────────────────────
 var googleClientId    = GetRequiredConfig(builder, "Authentication:Google:ClientId");
 var microsoftClientId = GetRequiredConfig(builder, "Authentication:Microsoft:ClientId");
-var microsoftTenantId = GetRequiredConfig(builder, "Authentication:Microsoft:TenantId");
 
 builder.Services
     .AddAuthentication(options =>
