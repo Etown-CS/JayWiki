@@ -33,7 +33,8 @@ public class UsersController : ControllerBase
         ?? "Unknown";
 
     private string ResolveProvider() =>
-        (User.FindFirst("iss")?.Value ?? "").Contains("google")
+        (User.FindFirst("iss")?.Value ?? "").Contains("accounts.google.com",
+            StringComparison.OrdinalIgnoreCase)
             ? "google"
             : "microsoft";
 
@@ -111,7 +112,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetAll()
     {
         var users = await _db.Users
-            .Select(u => new { u.UserId, u.Name })
+            .Select(u => new { u.Name })
             .ToListAsync();
         return Ok(users);
     }
