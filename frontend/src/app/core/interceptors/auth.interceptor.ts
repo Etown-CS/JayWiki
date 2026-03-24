@@ -15,12 +15,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
     let token: string | null = null;
     if (issuer.includes('accounts.google.com')) {
-      // Google: access tokens are opaque — fall back to ID token for API auth.
-      token = accessToken || idToken;
+        // Google: backend validates against ID token audience (clientId).
+        // Google access tokens are opaque and will fail backend JWT validation.
+        token = idToken || accessToken;
     } else {
-      // Microsoft: must use access token scoped to API audience.
-      // Do NOT fall back to ID token — it will fail audience validation.
-      token = accessToken;
+        // Microsoft: must use access token scoped to API audience.
+        // Do NOT fall back to ID token — it will fail audience validation.
+        token = accessToken;
     }
 
     if (token) {
