@@ -54,7 +54,7 @@ export class AuthService {
   logout(): void {
     this.oauthService.logOut();
     sessionStorage.removeItem('auth_provider');
-    this.router.navigate(['/login']);
+    this.router.navigate(['/']);
   }
 
   get isLoggedIn(): boolean {

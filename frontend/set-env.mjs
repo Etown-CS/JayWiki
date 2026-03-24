@@ -60,7 +60,7 @@ export const environment = {
   google: {
     clientId: ${get('GOOGLE_CLIENT_ID')},
   },
-    microsoft: {
+  microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
     tenantId: ${get('MICROSOFT_TENANT_ID')},
     apiScope: ${get('MICROSOFT_API_SCOPE')},

@@ -33,6 +33,7 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
           MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          MICROSOFT_API_SCOPE: ${{ secrets.MICROSOFT_API_SCOPE }}
           NG_API_BASE_URL: ${{ secrets.NG_API_BASE_URL }}
 
   close_pull_request_job:
