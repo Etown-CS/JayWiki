@@ -28,6 +28,7 @@ const microsoftConfig: AuthConfig = {
   useSilentRefresh: false,
   sessionChecksEnabled: false,
   requireHttps: false,
+  skipIssuerCheck: true,
 };
 
 @Injectable({ providedIn: 'root' })
