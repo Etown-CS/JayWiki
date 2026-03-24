@@ -17,7 +17,6 @@ const microsoftConfig: AuthConfig = {
   issuer: `https://login.microsoftonline.com/${environment.microsoft.tenantId}/v2.0`,
   clientId: environment.microsoft.clientId,
   redirectUri: window.location.origin + '/index.html',
-  // Include your API scope so Microsoft issues a JWT access token for your API
   scope: `openid profile email ${environment.microsoft.apiScope}`,
   responseType: 'code',
   strictDiscoveryDocumentValidation: false,
@@ -58,6 +57,13 @@ export class AuthService {
   }
 
   get isLoggedIn(): boolean {
+    const provider = sessionStorage.getItem('auth_provider');
+    if (provider === 'microsoft') {
+      // For Microsoft, require both a valid ID token and access token so that
+      // frontend "logged in" state matches backend authorization requirements.
+      return this.oauthService.hasValidIdToken() && this.oauthService.hasValidAccessToken();
+    }
+    // For Google (or unknown), ID token is used for API auth so check that only.
     return this.oauthService.hasValidIdToken();
   }
 

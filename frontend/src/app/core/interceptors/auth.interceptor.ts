@@ -7,17 +7,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const oauthService = inject(OAuthService);
   const isApiRequest = req.url.startsWith(environment.apiBaseUrl);
 
-  // Use access token (not ID token) for API authorization.
-  // For Microsoft this is a JWT scoped to your API audience.
-  // For Google this falls back to the ID token since Google access
-  // tokens are opaque and cannot be validated as JWTs by the backend.
-  const token = oauthService.getAccessToken() || oauthService.getIdToken();
+  if (isApiRequest) {
+    const identityClaims = oauthService.getIdentityClaims() as Record<string, unknown> | null;
+    const issuer = (identityClaims?.['iss'] as string) ?? '';
+    const accessToken = oauthService.getAccessToken();
+    const idToken = oauthService.getIdToken();
 
-  if (isApiRequest && token) {
-    const authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` },
-    });
-    return next(authReq);
+    let token: string | null = null;
+    if (issuer.includes('accounts.google.com')) {
+      // Google: access tokens are opaque — fall back to ID token for API auth.
+      token = accessToken || idToken;
+    } else {
+      // Microsoft: must use access token scoped to API audience.
+      // Do NOT fall back to ID token — it will fail audience validation.
+      token = accessToken;
+    }
+
+    if (token) {
+      return next(req.clone({
+        setHeaders: { Authorization: `Bearer ${token}` },
+      }));
+    }
   }
 
   return next(req);
