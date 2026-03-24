@@ -74,8 +74,11 @@ public class UsersController : ControllerBase
         {
             await _db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
+            when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
+                  && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
         {
+            // 2601 = unique index violation, 2627 = unique constraint violation
             // Race condition — another request inserted the same email
             // between our existence check and this insert.
             var concurrentUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);

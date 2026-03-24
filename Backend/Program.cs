@@ -7,9 +7,22 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 
 // ── Load .env BEFORE building the host ───────────────────────────────────────
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-if (File.Exists(envPath))
-    Env.Load(envPath);
+// Probe both cwd/.env and cwd/../.env so the app finds the repo-root .env
+// regardless of whether it is started from Backend/ or the repo root.
+var cwd = Directory.GetCurrentDirectory();
+var envCandidates = new[]
+{
+    Path.Combine(cwd, ".env"),
+    Path.Combine(cwd, "..", ".env"),
+};
+foreach (var envPath in envCandidates)
+{
+    if (File.Exists(envPath))
+    {
+        Env.Load(envPath);
+        break;
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,7 +111,6 @@ builder.Services
             ValidateIssuer   = true,
             ValidIssuer      = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0",
             ValidateAudience = true,
-            // Accept both the client ID audience (ID token) and the API scope audience (access token)
             ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
             ValidateLifetime = true,
         };
