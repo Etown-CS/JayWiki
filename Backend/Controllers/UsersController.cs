@@ -69,7 +69,23 @@ public class UsersController : ControllerBase
         };
 
         _db.Users.Add(newUser);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Race condition — another request inserted the same email
+            // between our existence check and this insert.
+            var concurrentUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (concurrentUser is not null)
+            {
+                return Ok(concurrentUser);
+            }
+            throw;
+        }
+
         return CreatedAtAction(nameof(GetMe), newUser);
     }
 

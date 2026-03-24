@@ -48,6 +48,7 @@ export const environment = {
   microsoft: {
     clientId: ${get('MICROSOFT_CLIENT_ID')},
     tenantId: ${get('MICROSOFT_TENANT_ID')},
+    apiScope: ${get('MICROSOFT_API_SCOPE')},
   },
 };
 `;
