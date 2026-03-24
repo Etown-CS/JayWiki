@@ -105,18 +105,21 @@ builder.Services
     })
     .AddJwtBearer("Microsoft", options =>
     {
-        options.Authority = $"https://login.microsoftonline.com/{microsoftTenantId}/v2.0";
+        // Use "common" endpoint to support both organizational AND personal Microsoft accounts
+        options.Authority = "https://login.microsoftonline.com/common/v2.0";
+        options.MetadataAddress = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration";
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer   = false,  // Disable to accept "common" tokens
+            // Disable issuer validation because tokens from "common" endpoint
+            // will have different issuers (organizational vs personal accounts).
+            // Security still maintained via signature + audience validation.
+            ValidateIssuer   = false,
             ValidateAudience = true,
             ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
             ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,  // Still validate token signature
+            ValidateIssuerSigningKey = true,  // Signature validation ensures token is from Microsoft
         };
-        
-        // Accept tokens from common endpoint
-        options.MetadataAddress = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration";
     });
 
 builder.Services.AddAuthorization();
