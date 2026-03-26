@@ -1,0 +1,89 @@
+PROJECT ERD - Entity Relationship Diagram
+==========================================
+
+ENTITIES AND ATTRIBUTES:
+------------------------
+
+1. USER
+   - user_id (PK)
+   - name
+   - media
+
+2. JOBS
+   - (attributes not fully visible)
+   - Connected to: USER
+
+3. SOCIALS
+   - GitHub, LinkedIn
+   - (Personal Website)
+   - Connected to: USER
+
+4. CLASS
+   - class_id (PK)
+   - name
+   - Connected to: USER
+
+5. PROJECT
+   - project_id (PK)
+   - registration
+   - environment
+   - media (images, videos, links)
+   - Connected to: CLASS
+
+6. TOPICS
+   - topic_id (PK)
+   - name
+   - Connected to: PROJECT
+
+7. EVENT_REGISTRATION
+   - (attributes TBD)
+   - Connected to: USER
+
+8. EVENTS
+   - (attributes TBD)
+   - Note: "For clubs, sports, academics, & other"
+   - Connected to: EVENT_REGISTRATION
+
+9. EVENT_MEDIA
+   - images, videos, links
+   - Connected to: EVENTS
+
+10. AWARDS
+    - (attributes TBD)
+    - Connected to: EVENTS
+
+
+RELATIONSHIPS:
+--------------
+
+USER ---< JOBS
+USER ---< SOCIALS  
+USER ---< CLASS
+USER ---< EVENT_REGISTRATION
+
+CLASS ---< PROJECT
+
+PROJECT ---< TOPICS
+PROJECT --- PROJECT_MEDIA
+
+EVENT_REGISTRATION ---< EVENTS
+
+EVENTS ---< EVENT_MEDIA
+EVENTS ---< AWARDS
+
+
+NOTES:
+------
+- Event media includes: images, videos, links
+- Events can be for: clubs, sports, academics, & other activities
+- Project media includes: images, videos, links
+
+
+TODO/QUESTIONS:
+---------------
+[ ] Define all attributes for JOBS
+[ ] Define all attributes for EVENTS
+[ ] Define all attributes for EVENT_REGISTRATION
+[ ] Define all attributes for AWARDS
+[ ] Confirm relationship cardinalities
+[ ] Add foreign key references
