@@ -12,9 +12,9 @@ The following diagram renders automatically on GitHub. For VS Code preview, inst
 erDiagram
     USER ||--o{ JOB : has
     USER ||--o{ SOCIAL : has
-    USER ||--o{ CLASS : enrolled_in
+    USER ||--o{ COURSE : enrolled_in
     USER ||--o{ EVENT_REGISTRATION : registers_for
-    CLASS ||--o{ PROJECT : contains
+    COURSE ||--o{ PROJECT : contains
     PROJECT ||--o{ TOPIC : covers
     PROJECT ||--o{ PROJECT_MEDIA : includes
     EVENT_REGISTRATION }o--|| EVENT : links_to
@@ -50,8 +50,8 @@ erDiagram
         bool Verified
     }
     
-    CLASS {
-        int ClassId PK
+    COURSE {
+        int CourseId PK
         int UserId FK
         string CourseCode
         string CourseName
@@ -62,7 +62,7 @@ erDiagram
     
     PROJECT {
         int ProjectId PK
-        int ClassId FK
+        int CourseId FK
         string Title
         string Description
         DateOnly StartDate
@@ -127,7 +127,7 @@ erDiagram
 - **AuthProvider** (string, required) - "google" or "microsoft"
 - **CreatedAt** (DateTime, required)
 - **UpdatedAt** (DateTime, required)
-- Connected to: JOB, SOCIAL, CLASS, EVENT_REGISTRATION
+- Connected to: JOB, SOCIAL, COURSE, EVENT_REGISTRATION
 
 ### 2. JOB
 - **JobId** (int, PK, Identity)
@@ -148,8 +148,8 @@ erDiagram
 - **Verified** (bool, required, default: false)
 - Connected to: USER
 
-### 4. CLASS
-- **ClassId** (int, PK, Identity)
+### 4. COURSE
+- **CourseId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required)
 - **CourseCode** (string, required) - e.g., "CS301"
 - **CourseName** (string, required)
@@ -160,7 +160,7 @@ erDiagram
 
 ### 5. PROJECT
 - **ProjectId** (int, PK, Identity)
-- **ClassId** (int, FK → CLASS, required)
+- **CourseId** (int, FK → COURSE, required)
 - **Title** (string, required)
 - **Description** (string, nullable)
 - **StartDate** (DateOnly, nullable)
@@ -168,7 +168,7 @@ erDiagram
 - **Status** (string, required, default: "active") - "active", "completed", "archived"
 - **GithubUrl** (string, nullable)
 - **DemoUrl** (string, nullable)
-- Connected to: CLASS, TOPIC, PROJECT_MEDIA
+- Connected to: COURSE, TOPIC, PROJECT_MEDIA
 
 ### 6. PROJECT_MEDIA
 - **ProjectMediaId** (int, PK, Identity)
@@ -222,10 +222,10 @@ erDiagram
 ```
 USER ──────< JOB                    (One-to-Many)
 USER ──────< SOCIAL                 (One-to-Many)
-USER ──────< CLASS                  (One-to-Many)
+USER ──────< COURSE                 (One-to-Many)
 USER ──────< EVENT_REGISTRATION     (One-to-Many)
 
-CLASS ─────< PROJECT                (One-to-Many)
+COURSE ────< PROJECT                (One-to-Many)
 
 PROJECT ───< TOPIC                  (One-to-Many)
 PROJECT ───< PROJECT_MEDIA          (One-to-Many)
@@ -254,14 +254,14 @@ EVENT ─────< AWARD                  (One-to-Many)
 
 **Foreign Key Behavior:**
 - All foreign keys configured with **CASCADE DELETE**
-- When a USER is deleted, all associated JOBs, SOCIALs, CLASSes, and EVENT_REGISTRATIONs are deleted
-- When a CLASS is deleted, all associated PROJECTs are deleted
+- When a USER is deleted, all associated JOBs, SOCIALs, COURSEs, and EVENT_REGISTRATIONs are deleted
+- When a COURSE is deleted, all associated PROJECTs are deleted
 - When a PROJECT is deleted, all associated TOPICs and PROJECT_MEDIA are deleted
 - When an EVENT is deleted, all associated EVENT_REGISTRATIONs, EVENT_MEDIA, and AWARDs are deleted
 
 **Indexes:**
 - Primary key indexes on all `*Id` columns (automatic with Identity)
-- Foreign key indexes on all `UserId`, `ClassId`, `ProjectId`, `EventId` columns (automatic with relationships)
+- Foreign key indexes on all `UserId`, `CourseId`, `ProjectId`, `EventId` columns (automatic with relationships)
 
 ### Data Type Specifications
 
@@ -361,6 +361,6 @@ EVENT ─────< AWARD                  (One-to-Many)
 ---
 
 **Schema Version:** 1.0  
-**Last Updated:** March 25, 2026  
+**Last Updated:** March 26, 2026  
 **Implementation Status:** ✅ Production Ready  
 **Next Update:** Profile image feature (v1.1)
