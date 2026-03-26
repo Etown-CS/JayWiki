@@ -21,7 +21,6 @@
 - [TROUBLESHOOTING COMMON ISSUES](#troubleshooting-common-issues)
 - [COST MANAGEMENT](#cost-management)
 - [HELPFUL RESOURCES](#helpful-resources)
-- [WHEN YOU'RE READY TO START CODING](#when-youre-ready-to-start-coding)
 
 ---
 
