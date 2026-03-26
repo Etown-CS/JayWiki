@@ -337,7 +337,6 @@ EVENT ─────< AWARD                  (One-to-Many)
   - **Migration needed:** Add column to Users table
   - **Backend:** Image upload endpoint, Azure Blob Storage integration
   - **Frontend:** Profile picture upload UI, display avatars
-  - **See:** [Profile Image Implementation Guide](./DB_TODO.md)
 
 #### 2. Optional Future Enhancements (Post-v1.0)
 - [ ] Add `USER.Bio` (string, nullable) - Short user biography
