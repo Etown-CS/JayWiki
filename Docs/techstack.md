@@ -69,7 +69,7 @@
 
 | Technology | What | Used For | Why |
 |------------|------|----------|-----|
-| **Azure App Service** | Managed hosting for web apps | Hosting the ASP.NET Core backend API | Free F1 tier sufficient for capstone; **Note:** app sleeps after 20 min inactivity — first load after idle is slow (~10-15 sec cold start) |
+| **Azure App Service** | Managed hosting for web apps | Hosting the ASP.NET Core backend API | B1 (Basic) tier provides dedicated compute resources with no sleep/cold start issues, supporting consistent performance for concurrent users |
 | **Azure Static Web Apps** | Hosting for static frontend apps | Hosting the Angular frontend | Fast, global CDN, free SSL, integrates with backend API |
 
 ### Hosting Architecture
@@ -84,6 +84,20 @@
      ↓ Media storage
 [Azure Blob Storage] ← Files and images
 ```
+
+### Current Azure Deployment
+
+**Resource Group:** `jaywiki-rg`
+
+**Resources:**
+- **SQL Server:** `jaywiki-server-ms` (West US 2)
+- **SQL Database:** Basic tier, 5 DTUs, v12.0.user (West US 2)
+- **App Service Plan:** `ASP-jaywikirg-b642` - Basic (B1: 1 instance)
+- **App Service:** `ASP-jaywikirg-b642` - Linux, B1 tier (East US)
+- **Storage Account:** (to be configured)
+- **Subscription:** Azure for Students
+
+**⚠️ Performance Note:** App Service (East US) and SQL Database (West US 2) are deployed in different regions, which introduces cross-region latency (~60-80ms roundtrip). For optimal performance in production, resources should be co-located in the same region. Current configuration is acceptable for development and testing but should be addressed before final deployment.
 
 ---
 
@@ -113,14 +127,18 @@
 ```
 Frontend:     Angular + TypeScript + Tailwind CSS
 Backend:      ASP.NET Core Web API + Entity Framework Core
-Database:     Azure SQL Database
+Database:     Azure SQL Database (Basic 5 DTUs)
 Auth:         angular-oauth2-oidc + ASP.NET Core OAuth (Google + Microsoft)
 Storage:      Azure Blob Storage
-Hosting:      Azure App Service + Static Web Apps
+Hosting:      Azure App Service (B1) + Static Web Apps
 DevOps:       Git + GitHub + GitHub Actions
 ```
 
-**Estimated Monthly Cost:** ~$5.50/month (within $100 Azure student credit)
+**Estimated Monthly Cost:** ~$18.50/month (within $100 Azure student credit)
+- Azure App Service B1: ~$13/month
+- Azure SQL Database Basic (5 DTUs): ~$5/month
+- Azure Blob Storage: ~$0.50/month
+- **Total for 5 months:** ~$92.50 (leaves $7.50 buffer in student credit)
 
 ---
 
@@ -155,9 +173,10 @@ DevOps:       Git + GitHub + GitHub Actions
 - Comprehensive documentation for future maintainers
 
 ### ✅ Cost Effective
-- Total cost ~$5.50/month — well within $100 Azure student credit
-- Free tiers available for most services during development
+- Total cost ~$18.50/month — well within $100 Azure student credit
+- B1 tier provides production-grade performance for academic workloads
 - No vendor lock-in for authentication
+- Sufficient budget for 5+ months of continuous development
 
 ---
 
@@ -186,10 +205,47 @@ DevOps:       Git + GitHub + GitHub Actions
 - Entity Framework Core has best support for SQL Server
 - Familiar to campus IT staff
 
+### Why B1 App Service over Free F1?
+- **No cold starts:** Free F1 sleeps after 20 minutes of inactivity (10-30 second wake-up time)
+- **Consistent performance:** B1 provides dedicated compute resources
+- **Production-ready:** Supports hundreds of concurrent users with sub-second response times
+- **Cost justified:** ~$13/month is acceptable for a production-grade capstone project
+
+---
+
+## Infrastructure Considerations
+
+### Region Selection
+**Current Setup:**
+- SQL Database: West US 2
+- App Service: East US
+
+**Impact:**
+- Cross-region latency: ~60-80ms per database query
+- Cross-region data transfer may incur charges (currently minimal on student credit)
+- Not critical for development/testing workloads
+
+**Future Optimization:**
+- For production deployment, co-locate all resources in single region (recommend East US 2 or West US 2)
+- Reduces latency to ~1-5ms for database queries
+- Eliminates cross-region data transfer costs
+
+### Scalability Strategy
+**Current (Development):**
+- B1 App Service: 1 instance, 1.75 GB RAM, 1 vCPU
+- SQL Basic: 5 DTUs (sufficient for ~5-10 concurrent users)
+
+**Production Scaling Options:**
+- App Service: Scale to B2/B3 or S1 tier for more CPU/RAM
+- SQL Database: Scale to Standard tier (S0-S3) for higher DTU allocation
+- Auto-scaling: Configure Azure App Service auto-scale rules based on CPU/memory metrics
+- CDN: Add Azure CDN for static content delivery
+
 ---
 
 ## Project Timeline
 
 **Deadline:** Mid-April 2025 (academic submission)  
 **Handoff:** Post-graduation to E-town School of Engineering  
-**Implementation:** 8-week milestone plan
+**Implementation:** 8-week milestone plan  
+**Current Status:** Active development - database schema implemented, authentication infrastructure in progress
