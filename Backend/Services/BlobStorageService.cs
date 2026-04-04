@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
@@ -14,16 +15,26 @@ public class BlobStorageService : IBlobStorageService
 {
     private readonly BlobServiceClient _blobServiceClient;
     private readonly string _profileImagesContainer;
+    private readonly ConcurrentDictionary<string, bool> _ensuredContainers = new();
 
     public BlobStorageService(IConfiguration configuration)
     {
-        var connectionString = configuration["BlobStorage:ConnectionString"]
-            ?? throw new InvalidOperationException("BlobStorage:ConnectionString is not configured.");
+        var connectionString = configuration["BlobStorage:ConnectionString"];
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException("BlobStorage:ConnectionString is not configured.");
 
         _profileImagesContainer = configuration["BlobStorage:ProfileImagesContainer"]
             ?? "profile-images";
 
         _blobServiceClient = new BlobServiceClient(connectionString);
+    }
+
+    private async Task EnsureContainerExistsAsync(BlobContainerClient containerClient)
+    {
+        if (_ensuredContainers.ContainsKey(containerClient.Name)) return;
+
+        await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+        _ensuredContainers[containerClient.Name] = true;
     }
 
     public async Task<string> UploadProfileImageAsync(IFormFile file, int userId)
@@ -34,7 +45,7 @@ public class BlobStorageService : IBlobStorageService
     public async Task<string> UploadMediaAsync(IFormFile file, string containerName, int parentId)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-        await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+        await EnsureContainerExistsAsync(containerClient);
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var blobName = $"{parentId}/{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
@@ -59,14 +70,23 @@ public class BlobStorageService : IBlobStorageService
     {
         if (string.IsNullOrWhiteSpace(blobUrl)) return;
 
-        var uri = new Uri(blobUrl);
+        // use TryCreate so a malformed URL can't crash the request pipeline
+        if (!Uri.TryCreate(blobUrl, UriKind.Absolute, out var uri)) return;
 
-        // Extract container and blob name from URL path: /container-name/blob-name
+        // validate host matches our storage account to prevent unintended deletions
+        var expectedHost = _blobServiceClient.Uri.Host;
+        if (!uri.Host.Equals(expectedHost, StringComparison.OrdinalIgnoreCase)) return;
+
+        // extract and validate against an allowlist of known containers
         var segments = uri.AbsolutePath.TrimStart('/').Split('/', 2);
         if (segments.Length < 2) return;
 
-        var containerName = segments[0]; // e.g. "profile-images"
-        var blobName = segments[1];      // e.g. "42/1711234567890.jpg"
+        var containerName = segments[0];
+        var blobName = segments[1];
+
+        // only allow deletion from known containers
+        var allowedContainers = new[] { _profileImagesContainer, "project-media", "event-media" };
+        if (!allowedContainers.Contains(containerName)) return;
 
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
         var blobClient = containerClient.GetBlobClient(blobName);

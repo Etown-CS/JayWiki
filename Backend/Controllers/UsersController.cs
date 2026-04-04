@@ -133,13 +133,16 @@ public class UsersController : ControllerBase
     // POST api/users/me/profile-image — upload profile picture to Azure Blob Storage
     [HttpPost("me/profile-image")]
     [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB limit
-    public async Task<IActionResult> UploadProfileImage(IFormFile file)
+    public async Task<IActionResult> UploadProfileImage([FromForm] IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file provided." });
 
+        // Parse only the type/subtype portion before any parameters (e.g. "image/jpeg; charset=...")
+        // and compare with OrdinalIgnoreCase to avoid culture-sensitive ToLower()
+        var contentType = file.ContentType?.Split(';')[0].Trim() ?? "";
         var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        if (!allowedTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
             return BadRequest(new { error = "Only JPEG, PNG, GIF, and WEBP images are allowed." });
 
         var email = ResolveEmail();
@@ -150,18 +153,32 @@ public class UsersController : ControllerBase
         if (user is null)
             return NotFound(new { error = "User not found." });
 
-        // Delete old profile image from blob storage if one exists
-        if (!string.IsNullOrEmpty(user.ProfileImageUrl))
-            await _blobStorage.DeleteBlobAsync(user.ProfileImageUrl);
+        var previousImageUrl = user.ProfileImageUrl;
 
-        // Upload new image and save the returned URL
-        var imageUrl = await _blobStorage.UploadProfileImageAsync(file, user.UserId);
+        // Upload new blob first, then update DB, then delete old blob last (best-effort).
+        // This ensures if upload or DB save fails, the user's existing image is not lost.
+        var newImageUrl = await _blobStorage.UploadProfileImageAsync(file, user.UserId);
 
-        user.ProfileImageUrl = imageUrl;
+        user.ProfileImageUrl = newImageUrl;
         user.UpdatedAt       = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        return Ok(new { profileImageUrl = imageUrl });
+        // Delete old blob only after new URL is safely persisted.
+        // Best-effort: a failed cleanup does not error the request.
+        if (!string.IsNullOrEmpty(previousImageUrl))
+        {
+            try
+            {
+                await _blobStorage.DeleteBlobAsync(previousImageUrl);
+            }
+            catch (Exception ex)
+            {
+                // Old blob cleanup failed — not critical, new image is already saved
+                Console.WriteLine($"Warning: failed to delete old profile image blob: {ex.Message}");
+            }
+        }
+
+        return Ok(new { profileImageUrl = newImageUrl });
     }
 
     // GET api/users — public

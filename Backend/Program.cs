@@ -48,8 +48,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // ── Blob Storage ──────────────────────────────────────────────────────────────
-builder.Configuration["BlobStorage:ConnectionString"] =
-    Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION_STRING") ?? "";
+var blobConnectionString = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION_STRING");
+if (!string.IsNullOrWhiteSpace(blobConnectionString))
+    builder.Configuration["BlobStorage:ConnectionString"] = blobConnectionString;
 
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 
