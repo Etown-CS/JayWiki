@@ -1,5 +1,6 @@
 using Backend.Data;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,13 @@ namespace Backend.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IBlobStorageService _blobStorage;
 
-    public UsersController(ApplicationDbContext db) => _db = db;
+    public UsersController(ApplicationDbContext db, IBlobStorageService blobStorage)
+    {
+        _db = db;
+        _blobStorage = blobStorage;
+    }
 
     // Resolves email across Google and Microsoft token claim variations.
     // Microsoft Entra ID tokens often omit the "email" claim even when
@@ -122,6 +128,40 @@ public class UsersController : ControllerBase
         user.UpdatedAt       = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return Ok(user);
+    }
+
+    // POST api/users/me/profile-image — upload profile picture to Azure Blob Storage
+    [HttpPost("me/profile-image")]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB limit
+    public async Task<IActionResult> UploadProfileImage(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file provided." });
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            return BadRequest(new { error = "Only JPEG, PNG, GIF, and WEBP images are allowed." });
+
+        var email = ResolveEmail();
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized();
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null)
+            return NotFound(new { error = "User not found." });
+
+        // Delete old profile image from blob storage if one exists
+        if (!string.IsNullOrEmpty(user.ProfileImageUrl))
+            await _blobStorage.DeleteBlobAsync(user.ProfileImageUrl);
+
+        // Upload new image and save the returned URL
+        var imageUrl = await _blobStorage.UploadProfileImageAsync(file, user.UserId);
+
+        user.ProfileImageUrl = imageUrl;
+        user.UpdatedAt       = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { profileImageUrl = imageUrl });
     }
 
     // GET api/users — public
