@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Backend.Data;
+using Backend.Services;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,13 @@ var connectionString = GetRequiredConfig(builder, "ConnectionStrings:DefaultConn
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+// ── Blob Storage ──────────────────────────────────────────────────────────────
+var blobConnectionString = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION_STRING");
+if (!string.IsNullOrWhiteSpace(blobConnectionString))
+    builder.Configuration["BlobStorage:ConnectionString"] = blobConnectionString;
+
+builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 
 // ── Authentication — dual JWT Bearer (Google + Microsoft) ─────────────────────
 var googleClientId    = GetRequiredConfig(builder, "Authentication:Google:ClientId");
