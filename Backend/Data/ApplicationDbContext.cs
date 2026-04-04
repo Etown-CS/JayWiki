@@ -33,5 +33,21 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<EventRegistration>()
             .HasIndex(er => new { er.UserId, er.EventId })
             .IsUnique();
+
+        // Project → User (primary ownership, required)
+        modelBuilder.Entity<Project>()
+            .HasOne(p => p.User)
+            .WithMany(u => u.Projects)
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Project → Course (optional association)
+        // SetNull so deleting a course doesn't delete the user's project
+        modelBuilder.Entity<Project>()
+            .HasOne(p => p.Course)
+            .WithMany(c => c.Projects)
+            .HasForeignKey(p => p.CourseId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.NoAction); // SQL Server can't handle SetNull + cascade from User
     }
 }

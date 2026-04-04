@@ -1,6 +1,6 @@
 # JayWiki Database Schema
 
-This Entity Relationship Diagram represents the current production database implementation as of March 2026. The schema was created with Entity Framework Core migrations and is deployed to Azure SQL Database.
+This Entity Relationship Diagram represents the current production database implementation as of April 2026. The schema was created with Entity Framework Core migrations and is deployed to Azure SQL Database.
 
 ---
 
@@ -14,7 +14,8 @@ erDiagram
     USER ||--o{ SOCIAL : has
     USER ||--o{ COURSE : enrolled_in
     USER ||--o{ EVENT_REGISTRATION : registers_for
-    COURSE ||--o{ PROJECT : contains
+    USER ||--o{ PROJECT : owns
+    COURSE |o--o{ PROJECT : associated_with
     PROJECT ||--o{ TOPIC : covers
     PROJECT ||--o{ PROJECT_MEDIA : includes
     EVENT_REGISTRATION }o--|| EVENT : links_to
@@ -63,7 +64,9 @@ erDiagram
     
     PROJECT {
         int ProjectId PK
+        int UserId FK
         int CourseId FK
+        string ProjectType
         string Title
         string Description
         DateOnly StartDate
@@ -129,7 +132,7 @@ erDiagram
 - **ProfileImageUrl** (string, nullable)
 - **CreatedAt** (DateTime, required)
 - **UpdatedAt** (DateTime, required)
-- Connected to: JOB, SOCIAL, COURSE, EVENT_REGISTRATION
+- Connected to: JOB, SOCIAL, COURSE, PROJECT, EVENT_REGISTRATION
 
 ### 2. JOB
 - **JobId** (int, PK, Identity)
@@ -162,7 +165,9 @@ erDiagram
 
 ### 5. PROJECT
 - **ProjectId** (int, PK, Identity)
-- **CourseId** (int, FK → COURSE, required)
+- **UserId** (int, FK → USER, required) - Direct ownership; primary relationship
+- **CourseId** (int, FK → COURSE, nullable) - Optional; only set for academic projects
+- **ProjectType** (string, required) - "academic", "research", "club", "personal"
 - **Title** (string, required)
 - **Description** (string, nullable)
 - **StartDate** (DateOnly, nullable)
@@ -170,7 +175,8 @@ erDiagram
 - **Status** (string, required, default: "active") - "active", "completed", "archived"
 - **GithubUrl** (string, nullable)
 - **DemoUrl** (string, nullable)
-- Connected to: COURSE, TOPIC, PROJECT_MEDIA
+- Connected to: USER, COURSE (optional), TOPIC, PROJECT_MEDIA
+- **Note:** Academic projects should always have a `CourseId`. Research, club, and personal projects leave `CourseId` null.
 
 ### 6. PROJECT_MEDIA
 - **ProjectMediaId** (int, PK, Identity)
@@ -225,9 +231,10 @@ erDiagram
 USER ──────< JOB                    (One-to-Many)
 USER ──────< SOCIAL                 (One-to-Many)
 USER ──────< COURSE                 (One-to-Many)
+USER ──────< PROJECT                (One-to-Many)
 USER ──────< EVENT_REGISTRATION     (One-to-Many)
 
-COURSE ────< PROJECT                (One-to-Many)
+COURSE ────<? PROJECT               (One-to-Many, optional — only academic projects)
 
 PROJECT ───< TOPIC                  (One-to-Many)
 PROJECT ───< PROJECT_MEDIA          (One-to-Many)
@@ -241,6 +248,7 @@ EVENT ─────< AWARD                  (One-to-Many)
 
 ### Cardinality Notes:
 - **One-to-Many (──────<)**: Parent can have multiple children, child belongs to one parent
+- **Optional One-to-Many (──────<?)**: Parent may have children, but the FK on the child is nullable
 - **Many-to-One (>────)**: Multiple children reference one parent
 - **Many-to-Many**: USER ←→ EVENT through EVENT_REGISTRATION junction table
 
@@ -255,11 +263,13 @@ EVENT ─────< AWARD                  (One-to-Many)
 - `EVENT_REGISTRATION(UserId, EventId)` - Composite unique index (prevents duplicate event registrations)
 
 **Foreign Key Behavior:**
-- All foreign keys configured with **CASCADE DELETE**
-- When a USER is deleted, all associated JOBs, SOCIALs, COURSEs, and EVENT_REGISTRATIONs are deleted
-- When a COURSE is deleted, all associated PROJECTs are deleted
-- When a PROJECT is deleted, all associated TOPICs and PROJECT_MEDIA are deleted
-- When an EVENT is deleted, all associated EVENT_REGISTRATIONs, EVENT_MEDIA, and AWARDs are deleted
+- `USER → JOB`, `USER → SOCIAL`, `USER → COURSE`, `USER → EVENT_REGISTRATION`: **CASCADE DELETE**
+- `USER → PROJECT`: **NO ACTION** at the database level — application layer handles project deletion before removing a user (SQL Server cycle restriction; see note below)
+- `COURSE → PROJECT`: **NO ACTION** at the database level — application layer nulls `CourseId` on associated projects before deleting a course (SQL Server cycle restriction; see note below)
+- `PROJECT → TOPIC`, `PROJECT → PROJECT_MEDIA`: **CASCADE DELETE**
+- `EVENT → EVENT_REGISTRATION`, `EVENT → EVENT_MEDIA`, `EVENT → AWARD`: **CASCADE DELETE**
+
+> **⚠️ SQL Server Cascade Restriction:** SQL Server does not allow multiple cascade paths to the same table. Because `USER` cascades to `COURSE`, and both `USER` and `COURSE` have FKs into `PROJECT`, cascade delete cannot be used on either `PROJECT` FK. Both are set to `NoAction` in EF Core. The `UsersController` and `CoursesController` must manually delete/null the relevant projects before deleting a user or course respectively.
 
 **Indexes:**
 - Primary key indexes on all `*Id` columns (automatic with Identity)
@@ -346,7 +356,7 @@ EVENT ─────< AWARD                  (One-to-Many)
 
 **Total Entities:** 11  
 **Junction Tables:** 1 (EVENT_REGISTRATION)  
-**One-to-Many Relationships:** 9  
+**One-to-Many Relationships:** 10  
 **Many-to-Many Relationships:** 1 (USER ↔ EVENT)  
 **Unique Constraints:** 2  
 **Database Type:** Azure SQL Database  

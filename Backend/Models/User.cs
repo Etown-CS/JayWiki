@@ -16,4 +16,6 @@ public class User
     public ICollection<Social> Socials { get; set; } = new List<Social>();
     public ICollection<Course> Courses { get; set; } = new List<Course>();
     public ICollection<EventRegistration> EventRegistrations { get; set; } = new List<EventRegistration>();
+
+    public ICollection<Project> Projects { get; set; } = [];
 }
