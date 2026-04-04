@@ -3,7 +3,7 @@ namespace Backend.Models;
 public class Project
 {
     public int ProjectId { get; set; }
-    public int ClassId { get; set; }
+    public int CourseId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateOnly? StartDate { get; set; }
@@ -13,7 +13,7 @@ public class Project
     public string? DemoUrl { get; set; }
 
     // Navigation properties
-    public Class Class { get; set; } = null!;
+    public Course Course { get; set; } = null!;
     public ICollection<Topic> Topics { get; set; } = new List<Topic>();
     public ICollection<ProjectMedia> ProjectMedia { get; set; } = new List<ProjectMedia>();
 }

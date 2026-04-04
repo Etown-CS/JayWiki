@@ -1,8 +1,8 @@
 namespace Backend.Models;
 
-public class Class
+public class Course
 {
-    public int ClassId { get; set; }
+    public int CourseId { get; set; }
     public int UserId { get; set; }
     public string CourseCode { get; set; } = string.Empty;
     public string CourseName { get; set; } = string.Empty;

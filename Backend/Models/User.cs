@@ -14,6 +14,6 @@ public class User
     // Navigation properties
     public ICollection<Job> Jobs { get; set; } = new List<Job>();
     public ICollection<Social> Socials { get; set; } = new List<Social>();
-    public ICollection<Class> Classes { get; set; } = new List<Class>();
+    public ICollection<Course> Courses { get; set; } = new List<Course>();
     public ICollection<EventRegistration> EventRegistrations { get; set; } = new List<EventRegistration>();
 }
