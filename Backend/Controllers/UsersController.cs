@@ -106,6 +106,24 @@ public class UsersController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
+    // PUT api/users/me — update profile fields
+    [HttpPut("me")]
+    public async Task<ActionResult<User>> UpdateMe([FromBody] UpdateProfileRequest request)
+    {
+        var email = ResolveEmail();
+        if (string.IsNullOrWhiteSpace(email))
+            return Unauthorized();
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null)
+            return NotFound();
+
+        user.ProfileImageUrl = request.ProfileImageUrl;
+        user.UpdatedAt       = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(user);
+    }
+
     // GET api/users — public
     [HttpGet]
     [AllowAnonymous]
@@ -117,3 +135,5 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 }
+
+public record UpdateProfileRequest(string? ProfileImageUrl);

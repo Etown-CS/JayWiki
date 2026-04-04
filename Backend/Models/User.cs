@@ -9,6 +9,8 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; }
 
+    public string? ProfileImageUrl { get; set; }
+
     // Navigation properties
     public ICollection<Job> Jobs { get; set; } = new List<Job>();
     public ICollection<Social> Socials { get; set; } = new List<Social>();

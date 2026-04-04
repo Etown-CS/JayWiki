@@ -27,6 +27,7 @@ erDiagram
         string Name
         string Email UK
         string AuthProvider
+        string ProfileImageUrl
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -125,6 +126,7 @@ erDiagram
 - **Name** (string, required)
 - **Email** (string, required, unique index)
 - **AuthProvider** (string, required) - "google" or "microsoft"
+- **ProfileImageUrl** (string, nullable) - Azure Blob Storage URL
 - **CreatedAt** (DateTime, required)
 - **UpdatedAt** (DateTime, required)
 - Connected to: JOB, SOCIAL, COURSE, EVENT_REGISTRATION
@@ -332,13 +334,7 @@ EVENT ─────< AWARD                  (One-to-Many)
 
 ### TODO - Database Schema Changes
 
-#### 1. User Profile Images
-- [ ] Add `USER.ProfileImageUrl` (string, nullable)
-  - **Migration needed:** Add column to Users table
-  - **Backend:** Image upload endpoint, Azure Blob Storage integration
-  - **Frontend:** Profile picture upload UI, display avatars
-
-#### 2. Optional Future Enhancements (Post-v1.0)
+#### 1. Optional Future Enhancements (Post-v1.0)
 - [ ] Add `USER.Bio` (string, nullable) - Short user biography
 - [ ] Add `PROJECT.Visibility` (string) - "public", "unlisted", "private"
 - [ ] Add `EVENT.Location` (string, nullable) - Physical location or room number
@@ -360,7 +356,7 @@ EVENT ─────< AWARD                  (One-to-Many)
 
 ---
 
-**Schema Version:** 1.0  
-**Last Updated:** March 26, 2026  
+**Schema Version:** 1.1
+**Last Updated:** April 4, 2026  
 **Implementation Status:** ✅ Production Ready  
-**Next Update:** Profile image feature (v1.1)
+**Next Update:** Blob Storage upload integration (Week 4/5)
