@@ -37,8 +37,7 @@ public abstract class ProjectBaseController : ControllerBase
     protected async Task<bool> IsProjectMemberAsync(int projectId, int userId)
     {
         var isOwner = await _context.Projects
-            .Include(p => p.Course)
-            .AnyAsync(p => p.ProjectId == projectId && p.Course!.UserId == userId);
+            .AnyAsync(p => p.ProjectId == projectId && p.UserId == userId);
 
         if (isOwner) return true;
 
@@ -46,12 +45,11 @@ public abstract class ProjectBaseController : ControllerBase
             .AnyAsync(pc => pc.ProjectId == projectId && pc.UserId == userId);
     }
 
-    // Checks if the current user is the project owner specifically (via Course)
+    // Checks if the current user is the project owner specifically
     protected async Task<bool> IsProjectOwnerAsync(int projectId, int userId)
     {
         return await _context.Projects
-            .Include(p => p.Course)
-            .AnyAsync(p => p.ProjectId == projectId && p.Course!.UserId == userId);
+            .AnyAsync(p => p.ProjectId == projectId && p.UserId == userId);
     }
 
     // Checks if the current user is an instructor or admin (for elevated permissions)
