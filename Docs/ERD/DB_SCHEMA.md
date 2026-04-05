@@ -14,7 +14,9 @@ erDiagram
     USER ||--o{ SOCIAL : has
     USER ||--o{ COURSE : enrolled_in
     USER ||--o{ EVENT_REGISTRATION : registers_for
+    USER ||--o{ PROJECT : owns
     USER ||--o{ PROJECT_COLLABORATOR : collaborates_on
+    USER ||--o{ USER_IDENTITY : authenticated_via
     COURSE_CATALOG ||--o{ COURSE : defines
     COURSE ||--o{ PROJECT : contains
     PROJECT ||--o{ TOPIC : covers
@@ -28,12 +30,20 @@ erDiagram
     USER {
         int UserId PK
         string Name
-        string Email UK
-        string AuthProvider
         string Role
         string ProfileImageUrl
         DateTime CreatedAt
         DateTime UpdatedAt
+    }
+
+    USER_IDENTITY {
+        int IdentityId PK
+        int UserId FK
+        string Provider
+        string ProviderEmail
+        string PasswordHash
+        bool IsPrimary
+        DateTime LinkedAt
     }
 
     JOB {
@@ -77,7 +87,9 @@ erDiagram
 
     PROJECT {
         int ProjectId PK
+        int UserId FK
         int CourseId FK
+        string ProjectType
         string Title
         string Description
         DateOnly StartDate
@@ -145,15 +157,26 @@ erDiagram
 ### 1. USER
 - **UserId** (int, PK, Identity)
 - **Name** (string, required)
-- **Email** (string, required, unique index)
-- **AuthProvider** (string, required) — "google" or "microsoft"
 - **Role** (string, required, default: "student") — "student" | "instructor" | "admin"
 - **ProfileImageUrl** (string, nullable) — Azure Blob Storage URL for profile picture
 - **CreatedAt** (DateTime, required)
 - **UpdatedAt** (DateTime, required)
-- Connected to: JOB, SOCIAL, COURSE, EVENT_REGISTRATION, PROJECT_COLLABORATOR
+- Connected to: USER_IDENTITY, JOB, SOCIAL, COURSE, PROJECT, EVENT_REGISTRATION, PROJECT_COLLABORATOR
+- **Note:** `Email` and `AuthProvider` removed — email and provider are now stored in USER_IDENTITY to support multiple login methods per account.
 
-### 2. JOB
+### 2. USER_IDENTITY
+- **IdentityId** (int, PK, Identity)
+- **UserId** (int, FK → USER, required)
+- **Provider** (string, required) — "google" | "microsoft" | "local"
+- **ProviderEmail** (string, required) — email address from that provider's token
+- **PasswordHash** (string, nullable) — BCrypt hash, only populated for "local" provider
+- **IsPrimary** (bool, required, default: false) — designates the display/primary email
+- **LinkedAt** (DateTime, required)
+- Connected to: USER
+- **Constraint:** Composite unique index on (Provider, ProviderEmail) — prevents duplicate identities per provider
+- **Note:** A user can have multiple identities (one per provider). Tokens from unrecognized issuers are rejected before touching the DB. All user lookups are scoped by both provider and email to prevent cross-provider ambiguity. BCrypt dummy hash computed once at startup to prevent timing-based enumeration attacks on login.
+
+### 3. JOB
 - **JobId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required)
 - **Company** (string, required)
@@ -163,7 +186,7 @@ erDiagram
 - **Description** (string, nullable)
 - Connected to: USER
 
-### 3. SOCIAL
+### 4. SOCIAL
 - **SocialId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required)
 - **Platform** (string, required) — "github", "linkedin", "website", etc.
@@ -172,7 +195,7 @@ erDiagram
 - **Verified** (bool, required, default: false)
 - Connected to: USER
 
-### 4. COURSE_CATALOG
+### 5. COURSE_CATALOG
 - **CatalogId** (int, PK, Identity)
 - **CourseCode** (string, required, unique) — e.g., "CS301" — always stored uppercase
 - **CourseName** (string, required) — e.g., "Data Structures"
@@ -184,76 +207,78 @@ erDiagram
 - Connected to: COURSE
 - **Note:** Managed by instructors/admins only. Source of truth for course codes and names across all students. Prevents free-text inconsistencies (e.g., "CS301" vs "CS 301" vs "Comp Sci 301").
 
-### 5. COURSE *(enrollment record)*
+### 6. COURSE *(enrollment record)*
 - **CourseId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required) — the enrolled student
 - **CatalogId** (int, FK → COURSE_CATALOG, required) — canonical course reference
-- **Semester** (string, required) — "Fall", "Spring", "Summer"
+- **Semester** (string, required, trimmed) — "Fall", "Spring", "Summer"
 - **Year** (int, required)
 - **Instructor** (string, nullable) — semester-specific instructor name
 - Connected to: USER, COURSE_CATALOG, PROJECT
-- **Note:** Replaces the old CLASS entity. `CourseCode` and `CourseName` are no longer stored here — they are derived from COURSE_CATALOG via CatalogId. A student can enroll in the same catalog course multiple times across different semesters/years.
+- **Note:** Replaces the old CLASS entity. `CourseCode` and `CourseName` derived from COURSE_CATALOG via CatalogId. Semester is normalized (trimmed) before duplicate checks to prevent whitespace-based duplicates on both create and update.
 
-### 6. PROJECT
+### 7. PROJECT
 - **ProjectId** (int, PK, Identity)
-- **CourseId** (int, FK → COURSE, required)
+- **UserId** (int, FK → USER, required) — direct owner (primary ownership)
+- **CourseId** (int, FK → COURSE, nullable) — optional course association
+- **ProjectType** (string, required, default: "academic") — "academic" | "research" | "club" | "personal"
 - **Title** (string, required)
 - **Description** (string, nullable)
 - **StartDate** (DateOnly, nullable)
 - **EndDate** (DateOnly, nullable)
-- **Status** (string, required, default: "active") — "active", "completed", "archived"
+- **Status** (string, required, default: "active") — "active" | "completed" | "archived"
 - **GithubUrl** (string, nullable)
 - **DemoUrl** (string, nullable)
-- Connected to: COURSE, TOPIC, PROJECT_MEDIA, PROJECT_COLLABORATOR
+- Connected to: USER, COURSE, TOPIC, PROJECT_MEDIA, PROJECT_COLLABORATOR
+- **Note:** Projects can be standalone (no CourseId) or tied to a course enrollment. Ownership determined directly via `UserId`. Supports `?status=` and `?type=` query filters. `ProjectType` is optional on create and defaults to "academic" — validation only runs if a value is provided.
 
-### 7. PROJECT_COLLABORATOR
+### 8. PROJECT_COLLABORATOR
 - **ProjectCollaboratorId** (int, PK, Identity)
 - **ProjectId** (int, FK → PROJECT, required)
 - **UserId** (int, FK → USER, required)
 - **AddedAt** (DateTime, required)
 - Connected to: PROJECT, USER
-- **Constraint:** Composite unique index on (ProjectId, UserId) prevents duplicate collaborators
-- **Note:** Stores teammates/partners on a project. The project owner is determined implicitly via `Project → Course → UserId`. Only the owner can add or remove collaborators. Both the owner and collaborators can create, edit, and delete topics and other project content.
+- **Constraint:** Composite unique index on (ProjectId, UserId) — prevents duplicate collaborators
+- **Note:** Stores teammates/partners. Owner determined directly via `Project.UserId`. Only the owner can add/remove collaborators. Collaborator emails normalized (trimmed + lowercased) before lookup and conflict checks.
 
-### 8. PROJECT_MEDIA
+### 9. PROJECT_MEDIA
 - **ProjectMediaId** (int, PK, Identity)
 - **ProjectId** (int, FK → PROJECT, required)
 - **MediaType** (string, required) — "image", "video", "link"
 - **Url** (string, required)
 - Connected to: PROJECT
 
-### 9. TOPIC
+### 10. TOPIC
 - **TopicId** (int, PK, Identity)
 - **ProjectId** (int, FK → PROJECT, required)
 - **Name** (string, required) — Technology/topic tags
 - Connected to: PROJECT
-- **Constraint:** Topic names are unique per project (duplicate names on the same project are rejected)
+- **Constraint:** Topic names unique per project (duplicate names rejected at application layer)
 
-### 10. EVENT
+### 11. EVENT
 - **EventId** (int, PK, Identity)
 - **Title** (string, required)
 - **Description** (string, nullable)
 - **Category** (string, required) — "club", "sport", "academic", "other"
 - **EventDate** (DateTime, required)
 - Connected to: EVENT_REGISTRATION, EVENT_MEDIA, AWARD
-- Note: Supports clubs, sports, academics, and other campus activities
 
-### 11. EVENT_REGISTRATION
+### 12. EVENT_REGISTRATION
 - **EventRegistrationId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required)
 - **EventId** (int, FK → EVENT, required)
 - **RegisteredAt** (DateTime, required)
 - Connected to: USER, EVENT
-- **Constraint:** Composite unique index on (UserId, EventId) prevents duplicate registrations
+- **Constraint:** Composite unique index on (UserId, EventId) — prevents duplicate registrations
 
-### 12. EVENT_MEDIA
+### 13. EVENT_MEDIA
 - **EventMediaId** (int, PK, Identity)
 - **EventId** (int, FK → EVENT, required)
 - **MediaType** (string, required) — "image", "video", "link"
 - **Url** (string, required)
 - Connected to: EVENT
 
-### 13. AWARD
+### 14. AWARD
 - **AwardId** (int, PK, Identity)
 - **EventId** (int, FK → EVENT, required)
 - **Title** (string, required)
@@ -266,15 +291,17 @@ erDiagram
 ## Relationships
 
 ```
+USER ──────< USER_IDENTITY            (One-to-Many)
 USER ──────< JOB                      (One-to-Many)
 USER ──────< SOCIAL                   (One-to-Many)
 USER ──────< COURSE                   (One-to-Many)
+USER ──────< PROJECT                  (One-to-Many) ← direct ownership
 USER ──────< EVENT_REGISTRATION       (One-to-Many)
 USER ──────< PROJECT_COLLABORATOR     (One-to-Many)
 
 COURSE_CATALOG ────< COURSE           (One-to-Many)
 
-COURSE ────< PROJECT                  (One-to-Many)
+COURSE ────< PROJECT                  (One-to-Many, optional)
 
 PROJECT ───< TOPIC                    (One-to-Many)
 PROJECT ───< PROJECT_MEDIA            (One-to-Many)
@@ -291,7 +318,7 @@ EVENT ─────< AWARD                    (One-to-Many)
 - **One-to-Many (──────<)**: Parent can have multiple children, child belongs to one parent
 - **Many-to-One (>────)**: Multiple children reference one parent
 - **Many-to-Many**: USER ←→ EVENT through EVENT_REGISTRATION junction table
-- **Many-to-Many**: USER ←→ PROJECT through PROJECT_COLLABORATOR junction table (owner is implicit via Course)
+- **Many-to-Many**: USER ←→ PROJECT through PROJECT_COLLABORATOR junction table (owner via Project.UserId)
 
 ---
 
@@ -308,11 +335,14 @@ EVENT ─────< AWARD                    (One-to-Many)
 | Action | Owner | Collaborator | Anyone |
 |--------|-------|--------------|--------|
 | View project | ✅ | ✅ | ✅ |
+| Create project | ✅ | ❌ | ❌ |
+| Update project | ✅ | ✅ | ❌ |
+| Delete project | ✅ | ❌ | ❌ |
 | Add/remove collaborators | ✅ | ❌ | ❌ |
 | Create/edit/delete topics | ✅ | ✅ | ❌ |
 | Create/edit/delete project media | ✅ | ✅ | ❌ |
 
-The project **owner** is always the user who owns the COURSE the project belongs to (`Project → Course → UserId`). Collaborators are stored explicitly in PROJECT_COLLABORATOR.
+The project **owner** is determined directly via `Project.UserId`. Collaborators stored explicitly in PROJECT_COLLABORATOR.
 
 ### Course Catalog Access
 | Action | Student | Instructor/Admin |
@@ -330,19 +360,22 @@ The project **owner** is always the user who owns the COURSE the project belongs
 ### Database Constraints & Indexes
 
 **Unique Constraints:**
-- `USER.Email` — Unique index (prevents duplicate email addresses across authentication providers)
-- `COURSE_CATALOG.CourseCode` — Unique index (prevents duplicate course codes; always stored uppercase)
-- `PROJECT_COLLABORATOR(ProjectId, UserId)` — Composite unique index (prevents duplicate collaborators)
-- `EVENT_REGISTRATION(UserId, EventId)` — Composite unique index (prevents duplicate event registrations)
-- `TOPIC(ProjectId, Name)` — Duplicate topic names rejected per project at application layer
+- `USER_IDENTITY(Provider, ProviderEmail)` — Composite unique index (prevents duplicate identities per provider)
+- `COURSE_CATALOG.CourseCode` — Unique index (always stored uppercase)
+- `COURSE(UserId, CatalogId, Semester, Year)` — Duplicate enrollments rejected at application layer; semester normalized before check
+- `PROJECT_COLLABORATOR(ProjectId, UserId)` — Composite unique index
+- `EVENT_REGISTRATION(UserId, EventId)` — Composite unique index
+- `TOPIC(ProjectId, Name)` — Duplicate names rejected per project at application layer
 
 **Foreign Key Behavior:**
-- `USER` deleted → cascades to JOB, SOCIAL, COURSE, EVENT_REGISTRATION, PROJECT_COLLABORATOR
-- `COURSE` deleted → cascades to PROJECT
+- `USER` deleted → cascades to USER_IDENTITY, JOB, SOCIAL, COURSE, EVENT_REGISTRATION
 - `PROJECT` deleted → cascades to TOPIC, PROJECT_MEDIA, PROJECT_COLLABORATOR
 - `EVENT` deleted → cascades to EVENT_REGISTRATION, EVENT_MEDIA, AWARD
-- `COURSE_CATALOG` deleted → **restricted** if any COURSE enrollments exist (prevents orphaned enrollment records)
+- `COURSE_CATALOG` deleted → **restricted** if any COURSE enrollments exist
 - `COURSE_CATALOG.CreatedByUserId` → **restricted** (deleting an instructor does not delete the catalog)
+- `PROJECT.UserId` → **NoAction** (avoids multiple cascade path conflict)
+- `PROJECT.CourseId` → **NoAction** (deleting a course does not delete projects)
+- `PROJECT_COLLABORATOR.UserId` → **NoAction** (avoids multiple cascade path conflict)
 
 **Indexes:**
 - Primary key indexes on all `*Id` columns (automatic with Identity)
@@ -361,47 +394,91 @@ The project **owner** is always the user who owns the COURSE the project belongs
 | `bool` | `bit` | Boolean flags |
 
 **Storage Notes:**
-- All `DateTime` values stored as UTC in the database
-- Application code converts to local time zones as needed
-- `DateOnly` used for employment dates, project dates to avoid timezone confusion
-- `nvarchar(max)` allows unlimited text length (URLs, descriptions, etc.)
+- All `DateTime` values stored as UTC
+- `DateOnly` used for employment/project dates to avoid timezone confusion
 - Course codes normalized to uppercase on write
+- Collaborator emails normalized (trimmed + lowercased) on write
+- Semester values trimmed before duplicate enrollment checks
 
 ### Authentication & Authorization
 
-**Supported OAuth Providers:**
-1. **Google OAuth 2.0**
-   - Validates ID tokens against `clientId`
-   - Claims: `email`, `name`, `iss` (issuer contains "accounts.google.com")
+**Supported Providers:**
+1. **Google OAuth 2.0** — ID token validated against `clientId`; claims: `email`, `name`, `iss`
+2. **Microsoft Entra ID** — Access token via common endpoint; claims: `preferred_username` or `upn`, `name`
+3. **Local (Email + Password)** — Backend-issued JWT (issuer: "jaywiki-api"); BCrypt password hashing; 7-day token expiry
 
-2. **Microsoft Entra ID (formerly Azure AD)**
-   - Validates access tokens with Microsoft common endpoint
-   - Supports both organizational (@etown.edu) and personal Microsoft accounts
-   - Claims: `preferred_username` or `upn` for email, `name`
-
-**User Provisioning:**
-- Users automatically created on first login via `POST /api/users/me`
-- Default role assigned as `"student"` on creation
-- `AuthProvider` field tracks which provider authenticated the user
-- Race condition protection on concurrent first logins
+**User Identity Model:**
+- One USER row per person, multiple USER_IDENTITY rows (one per provider)
+- First identity on account is automatically set as primary
+- Additional providers linked via `POST /api/auth/link`
+- Tokens from unrecognized issuers rejected before any DB operations
+- All user lookups scoped by both provider AND email to prevent cross-provider ambiguity
+- Static BCrypt dummy hash used in login to prevent timing-based user enumeration
 
 **Backend Implementation:**
-- Dual JWT Bearer authentication schemes (one for Google, one for Microsoft)
-- Policy-based scheme selector inspects token `iss` claim
-- Role checked at application layer via `currentUser.Role` (not claims-based)
-- Shared `ProjectBaseController` base class provides reusable helpers: `GetCurrentUserAsync()`, `IsProjectMemberAsync()`, `IsProjectOwnerAsync()`, `IsInstructorOrAdminAsync()`
+- Triple JWT Bearer schemes: "Google", "Microsoft", "Local"
+- Policy-based `MultiScheme` selector inspects token `iss` claim
+- Role checked at application layer via `currentUser.Role`
+- `ProjectBaseController` provides: `GetCurrentUserAsync()` (provider-scoped), `IsProjectMemberAsync()`, `IsProjectOwnerAsync()`, `IsInstructorOrAdminAsync()`
 
 ---
 
 ## API Endpoints
 
+### Authentication (`/api/auth`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/register` | Public | Create account with email + password |
+| POST | `/api/auth/login` | Public | Email + password → returns signed JWT |
+| POST | `/api/auth/link` | Authenticated | Link local email/password to existing OAuth account |
+
+### Users (`/api/users`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users` | Public | List all users (name, profileImageUrl) |
+| GET | `/api/users/{id}` | Public | Get a specific user by ID |
+| GET | `/api/users/me` | Authenticated | Get current user profile |
+| POST | `/api/users/me` | Authenticated | Upsert user on first OAuth login |
+| PUT | `/api/users/me` | Authenticated | Update name and profile fields |
+| DELETE | `/api/users/me` | Authenticated | Delete own account |
+| POST | `/api/users/me/profile-image` | Authenticated | Upload profile picture (multipart/form-data, 5MB max, JPEG/PNG/GIF/WEBP) |
+| GET | `/api/users/me/identities` | Authenticated | List all linked login providers |
+| POST | `/api/users/me/identities/primary/{id}` | Authenticated | Set primary/display email |
+| DELETE | `/api/users/me/identities/{id}` | Authenticated | Unlink a provider (min 1 must remain) |
+
+### Projects (`/api/users/{userId}/projects`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users/{userId}/projects` | Public | List all projects (supports `?status=` and `?type=` filters) |
+| GET | `/api/users/{userId}/projects/{id}` | Public | Get project with topics, media, collaborators |
+| GET | `/api/users/{userId}/courses/{courseId}/projects` | Public | List projects scoped to a course enrollment |
+| POST | `/api/users/{userId}/projects` | Owner only | Create a project |
+| PUT | `/api/users/{userId}/projects/{id}` | Owner or Collaborator | Update project fields |
+| DELETE | `/api/users/{userId}/projects/{id}` | Owner only | Delete project |
+
+### Topics (`/api/projects/{projectId}/topics`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/projects/{projectId}/topics` | Public | List all topics for a project |
+| GET | `/api/projects/{projectId}/topics/{id}` | Public | Get a single topic |
+| POST | `/api/projects/{projectId}/topics` | Owner or Collaborator | Add topic |
+| PUT | `/api/projects/{projectId}/topics/{id}` | Owner or Collaborator | Update topic name |
+| DELETE | `/api/projects/{projectId}/topics/{id}` | Owner or Collaborator | Delete topic |
+
+### Project Collaborators (`/api/projects/{projectId}/collaborators`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/projects/{projectId}/collaborators` | Public | List collaborators |
+| POST | `/api/projects/{projectId}/collaborators` | Owner only | Add collaborator by email |
+| DELETE | `/api/projects/{projectId}/collaborators/{userId}` | Owner only | Remove collaborator |
+
 ### Course Catalog (`/api/courses`)
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/courses` | Public | List all catalog entries (supports `?department=` and `?search=` filters) |
+| GET | `/api/courses` | Public | List catalog entries (supports `?department=` and `?search=`) |
 | GET | `/api/courses/{id}` | Public | Get a single catalog entry |
-| GET | `/api/courses/{id}/enrollments` | Public | All students enrolled + their projects for this course |
-| POST | `/api/courses` | Instructor/Admin | Add new course to catalog |
+| GET | `/api/courses/{id}/enrollments` | Public | All students enrolled + their projects |
+| POST | `/api/courses` | Instructor/Admin | Add course to catalog |
 | PUT | `/api/courses/{id}` | Instructor/Admin | Update catalog entry |
 | DELETE | `/api/courses/{id}` | Instructor/Admin | Delete catalog entry (blocked if enrollments exist) |
 
@@ -411,33 +488,8 @@ The project **owner** is always the user who owns the COURSE the project belongs
 | GET | `/api/users/{userId}/courses` | Public | List a student's enrolled courses |
 | GET | `/api/users/{userId}/courses/{id}` | Public | Get enrollment detail with projects |
 | POST | `/api/users/{userId}/courses` | Owner or Instructor/Admin | Enroll in a course |
-| PUT | `/api/users/{userId}/courses/{id}` | Owner or Instructor/Admin | Update enrollment (semester, year, instructor) |
+| PUT | `/api/users/{userId}/courses/{id}` | Owner or Instructor/Admin | Update enrollment |
 | DELETE | `/api/users/{userId}/courses/{id}` | Owner or Instructor/Admin | Remove enrollment |
-
-### Topics (`/api/projects/{projectId}/topics`)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/projects/{projectId}/topics` | Public | List all topics for a project |
-| GET | `/api/projects/{projectId}/topics/{id}` | Public | Get a single topic |
-| POST | `/api/projects/{projectId}/topics` | Owner or Collaborator | Add topic to project |
-| PUT | `/api/projects/{projectId}/topics/{id}` | Owner or Collaborator | Update topic name |
-| DELETE | `/api/projects/{projectId}/topics/{id}` | Owner or Collaborator | Delete topic |
-
-### Project Collaborators (`/api/projects/{projectId}/collaborators`)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/projects/{projectId}/collaborators` | Public | List collaborators on a project |
-| POST | `/api/projects/{projectId}/collaborators` | Owner only | Add collaborator by email |
-| DELETE | `/api/projects/{projectId}/collaborators/{userId}` | Owner only | Remove collaborator |
-
-### Users (`/api/users`)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/users` | Public | List all users (names only) |
-| GET | `/api/users/me` | Authenticated | Get current user profile |
-| POST | `/api/users/me` | Authenticated | Upsert user on first login |
-| PUT | `/api/users/me` | Authenticated | Update profile fields |
-| POST | `/api/users/me/profile-image` | Authenticated | Upload profile picture to Azure Blob Storage |
 
 ---
 
@@ -471,21 +523,34 @@ The project **owner** is always the user who owns the COURSE the project belongs
 - [ ] Add full-text search indexes on Title/Description fields
 - [ ] Consider separate `SKILL` table linked to USER for skill tagging
 - [ ] Role assignment UI for promoting users to instructor/admin
+- [ ] Account merge endpoint for linking two separately-created OAuth accounts
+
+---
+
+## Migration History
+
+| Migration | Changes |
+|-----------|---------|
+| `InitialCreate` | USER, JOB, SOCIAL, CLASS, PROJECT, PROJECT_MEDIA, TOPIC, EVENT, EVENT_REGISTRATION, EVENT_MEDIA, AWARD |
+| `AddProjectCollaborators` | Added PROJECT_COLLABORATOR table |
+| `AddCourseCatalogAndUserRole` | Added COURSE_CATALOG; added `Role` and `ProfileImageUrl` to USER; replaced CLASS with COURSE |
+| `AddUserIdentities` | Added USER_IDENTITY; removed `Email` and `AuthProvider` from USER; added `UserId` and `ProjectType` to PROJECT |
 
 ---
 
 ## Quick Reference
 
-**Total Entities:** 13
+**Total Entities:** 14
 **Junction Tables:** 2 (EVENT_REGISTRATION, PROJECT_COLLABORATOR)
-**One-to-Many Relationships:** 11
+**One-to-Many Relationships:** 13
 **Many-to-Many Relationships:** 2 (USER ↔ EVENT, USER ↔ PROJECT)
-**Unique Constraints:** 4
+**Unique Constraints:** 5
+**Auth Providers:** 3 (Google, Microsoft, Local)
 **Database Type:** Azure SQL Database
 **ORM:** Entity Framework Core 10.0.5
 
 ---
 
-**Schema Version:** 1.2
+**Schema Version:** 1.3
 **Last Updated:** April 2026
 **Implementation Status:** ✅ Production Ready
