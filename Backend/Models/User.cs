@@ -11,6 +11,8 @@ public class User
 
     public string? ProfileImageUrl { get; set; }
 
+    public string Role { get; set; } = "student"; // "student" | "instructor" | "admin"
+
     // Navigation properties
     public ICollection<Job> Jobs { get; set; } = new List<Job>();
     public ICollection<Social> Socials { get; set; } = new List<Social>();

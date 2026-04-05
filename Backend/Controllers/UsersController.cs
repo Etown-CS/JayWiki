@@ -133,14 +133,15 @@ public class UsersController : ControllerBase
     // POST api/users/me/profile-image — upload profile picture to Azure Blob Storage
     [HttpPost("me/profile-image")]
     [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB limit
-    public async Task<IActionResult> UploadProfileImage([FromForm] IFormFile file)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadProfileImage([FromForm] ProfileImageUploadRequest request)
     {
-        if (file == null || file.Length == 0)
+        if (request.File == null || request.File.Length == 0)
             return BadRequest(new { error = "No file provided." });
 
         // Parse only the type/subtype portion before any parameters (e.g. "image/jpeg; charset=...")
         // and compare with OrdinalIgnoreCase to avoid culture-sensitive ToLower()
-        var contentType = file.ContentType?.Split(';')[0].Trim() ?? "";
+        var contentType = request.File.ContentType?.Split(';')[0].Trim() ?? "";
         var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
         if (!allowedTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
             return BadRequest(new { error = "Only JPEG, PNG, GIF, and WEBP images are allowed." });
@@ -157,7 +158,7 @@ public class UsersController : ControllerBase
 
         // Upload new blob first, then update DB, then delete old blob last (best-effort).
         // This ensures if upload or DB save fails, the user's existing image is not lost.
-        var newImageUrl = await _blobStorage.UploadProfileImageAsync(file, user.UserId);
+        var newImageUrl = await _blobStorage.UploadProfileImageAsync(request.File, user.UserId);
 
         user.ProfileImageUrl = newImageUrl;
         user.UpdatedAt       = DateTime.UtcNow;
@@ -194,3 +195,8 @@ public class UsersController : ControllerBase
 }
 
 public record UpdateProfileRequest(string? ProfileImageUrl);
+
+public class ProfileImageUploadRequest
+{
+    public IFormFile File { get; set; } = null!;
+}

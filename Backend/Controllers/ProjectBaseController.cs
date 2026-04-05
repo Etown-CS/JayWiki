@@ -47,4 +47,12 @@ public abstract class ProjectBaseController : ControllerBase
             .Include(p => p.Course)
             .AnyAsync(p => p.ProjectId == projectId && p.Course!.UserId == userId);
     }
+
+    // Checks if the current user is an instructor or admin (for elevated permissions)
+    protected async Task<bool> IsInstructorOrAdminAsync()
+    {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return false;
+        return currentUser.Role == "instructor" || currentUser.Role == "admin";
+    }
 }

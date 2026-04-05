@@ -12,6 +12,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Job> Jobs { get; set; } = null!;
     public DbSet<Social> Socials { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
+
+    public DbSet<CourseCatalog> CourseCatalog { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<Topic> Topics { get; set; } = null!;
     public DbSet<ProjectMedia> ProjectMedia { get; set; } = null!;
@@ -25,10 +27,36 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // User
+        // User -- default role and unique email
+        modelBuilder.Entity<User>()
+            .Property(u => u.Role)
+            .HasDefaultValue("student");
+
+        // User -- unique email constraint
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        // Course Catalog → User (creator) with unique course code
+        modelBuilder.Entity<CourseCatalog>(entity =>
+        {
+            entity.HasKey(e => e.CatalogId);
+            entity.HasIndex(e => e.CourseCode).IsUnique();
+
+            entity.HasOne(e => e.CreatedBy)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict); // don't cascade-delete catalog if user deleted
+        });
+
+        // Course → Course Catalog (required) and User (instructor, required)
+        modelBuilder.Entity<Course>(entity =>
+        {
+            entity.HasOne(e => e.Catalog)
+                .WithMany(c => c.Courses)
+                .HasForeignKey(e => e.CatalogId)
+                .OnDelete(DeleteBehavior.Restrict); // don't wipe enrollments if catalog entry deleted
+        });
 
         // EventRegistration — composite unique constraint (user can't register twice)
         modelBuilder.Entity<EventRegistration>()
