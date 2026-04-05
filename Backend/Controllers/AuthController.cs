@@ -17,6 +17,10 @@ public class AuthController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly JwtSigningConfig _jwtConfig;
 
+    // Precomputed dummy hash — used in Login() to prevent timing attacks
+    // without re-hashing on every failed attempt (BCrypt is intentionally slow)
+    private static readonly string _dummyHash = BCrypt.Net.BCrypt.HashPassword("dummy-password-that-never-matches");
+
     public AuthController(ApplicationDbContext db, JwtSigningConfig jwtConfig)
     {
         _db        = db;
@@ -64,7 +68,7 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var token = GenerateToken(user, identity.ProviderEmail);
-        return CreatedAtAction(null, null, new { token, user.UserId, user.Name, user.Role });
+        return Ok(new { token, user.UserId, user.Name, user.Role });
     }
 
     // POST api/auth/login
@@ -82,7 +86,7 @@ public class AuthController : ControllerBase
                 i.ProviderEmail == request.Email.Trim().ToLower());
 
         // Use constant-time comparison path even on not-found to prevent timing attacks
-        var hashToCheck = identity?.PasswordHash ?? BCrypt.Net.BCrypt.HashPassword("dummy");
+        var hashToCheck = identity?.PasswordHash ?? _dummyHash;
         var passwordValid = BCrypt.Net.BCrypt.Verify(request.Password, hashToCheck);
 
         if (identity is null || !passwordValid)
@@ -105,14 +109,22 @@ public class AuthController : ControllerBase
 
         // Find current user via their OAuth token
         var currentEmail = User.FindFirst("email")?.Value
+                        ?? User.FindFirst(ClaimTypes.Email)?.Value
                         ?? User.FindFirst("preferred_username")?.Value
-                        ?? User.FindFirst(ClaimTypes.Email)?.Value;
+                        ?? User.FindFirst("upn")?.Value
+                        ?? User.FindFirst(ClaimTypes.Upn)?.Value;
 
         if (string.IsNullOrWhiteSpace(currentEmail)) return Unauthorized();
 
+        // Scope by provider to avoid ambiguous match across providers sharing same email
+        var issuer = User.FindFirst("iss")?.Value ?? "";
+        var provider = issuer.Contains("accounts.google.com", StringComparison.OrdinalIgnoreCase) ? "google"
+                    : issuer.Contains("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) ? "microsoft"
+                    : "local";
+
         var currentIdentity = await _db.UserIdentities
             .Include(i => i.User)
-            .FirstOrDefaultAsync(i => i.ProviderEmail == currentEmail);
+            .FirstOrDefaultAsync(i => i.Provider == provider && i.ProviderEmail == currentEmail);
 
         if (currentIdentity is null) return NotFound(new { message = "Current user not found." });
 
