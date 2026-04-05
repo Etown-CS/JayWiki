@@ -1,4 +1,4 @@
-# PROJECT SETUP GUIDE - MICROSOFT CAMPUS PROJECT
+# PROJECT SETUP GUIDE - JAYWIKI CAMPUS PORTFOLIO SYSTEM
 
 ---
 
@@ -15,7 +15,8 @@
   - [Phase 4: Setup Azure Resources](#phase-4-setup-azure-resources)
   - [Phase 5: Connect Everything Locally](#phase-5-connect-everything-locally)
   - [Phase 6: Setup GitHub Actions for Deployment](#phase-6-setup-github-actions-for-deployment)
-  - [Phase 7: Configure Authentication](#phase-7-configure-authentication)
+  - [Phase 7: Configure OAuth Authentication](#phase-7-configure-oauth-authentication)
+  - [Phase 8: Configure Local Auth (Email + Password)](#phase-8-configure-local-auth-email--password)
 - [VERIFICATION CHECKLIST](#verification-checklist)
 - [NEXT STEPS AFTER SETUP](#next-steps-after-setup)
 - [TROUBLESHOOTING COMMON ISSUES](#troubleshooting-common-issues)
@@ -51,12 +52,12 @@ Before starting, verify your school email works with these services:
 - ✓ Success = Free GitHub Pro + additional tools
 - ✗ Failure = Regular GitHub free tier works fine
 
-☐ **Step 4: Verify Campus SSO (Single Sign-On)**
+☐ **Step 4: Verify Campus Microsoft Account Support**
 - Ask IT department: "Does our campus use Microsoft Entra ID (Azure AD)?"
-- Ask: "Can students authenticate apps using campus credentials?"
-- Note: This project uses angular-oauth2-oidc which supports both Microsoft (campus) AND Google login
-- ✓ Campus has SSO = You can integrate campus authentication
-- ✗ No campus SSO = OAuth still works with Google/Microsoft accounts
+- Ask: "Can students register OAuth apps using campus credentials?"
+- **Important:** If IT blocks tenant-level app registrations, use a personal Microsoft account (e.g., outlook.com) to register the app with the "common" endpoint — this still supports campus @etown.edu logins
+- ✓ Campus IT allows app registration = Register under school tenant
+- ✗ Blocked by IT = Register under personal Microsoft account using common endpoint (see Phase 7)
 
 ### Required Software Installation
 
@@ -78,17 +79,21 @@ Before starting, verify your school email works with these services:
   * Azure Tools
   * GitLens
 
-☐ **4. Install .NET SDK (v8.0)**
+☐ **4. Install .NET SDK (v10.0)**
 - Download: https://dotnet.microsoft.com/download
 - Version check: `dotnet --version`
-- Should show: 8.0.x
+- Should show: 10.0.x
 
 ☐ **5. Install Angular CLI**
 - Run in terminal: `npm install -g @angular/cli`
 - Version check: `ng version`
 - Should show: Angular CLI 17.x.x or higher
 
-☐ **6. Install SQL Server Management Studio (SSMS) - Optional but helpful**
+☐ **6. Install GitHub Desktop (optional but recommended)**
+- Download: https://desktop.github.com/
+- Used for: Branch management, commits, PRs without CLI
+
+☐ **7. Install SQL Server Management Studio (SSMS) - Optional but helpful**
 - Download: https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms
 - Used for: Viewing and managing your database locally
 
@@ -118,10 +123,10 @@ Before starting, verify your school email works with these services:
 ### Phase 1: Create GitHub Repository
 
 ☐ **1. Create New Repository**
-- Go to: https://github.com/new
-- Repository name: "campus-portfolio-system" (or your choice)
-- Description: "Portfolio management system for Microsoft campus"
-- Set to: Private (for now)
+- Go to your GitHub organization or personal account
+- Create new repository: "JayWiki" (or your choice)
+- Description: "Campus Portfolio Management System"
+- Set to: Private
 - ✓ Add README.md
 - ✓ Add .gitignore (choose: VisualStudio)
 - Click "Create repository"
@@ -129,7 +134,7 @@ Before starting, verify your school email works with these services:
 ☐ **2. Clone Repository Locally**
 - Copy the repository URL
 - Open terminal in your projects folder
-- Run: `git clone https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git`
+- Run: `git clone https://github.com/YOUR-ORG/YOUR-REPO-NAME.git`
 - Run: `cd YOUR-REPO-NAME`
 
 ### Phase 2: Create Angular Frontend
@@ -145,10 +150,13 @@ Before starting, verify your school email works with these services:
   * Enable routing: Yes
 
 ☐ **2. Install Tailwind CSS**
+
+> **⚠️ IMPORTANT: Tailwind CSS v4 is incompatible with Angular 17**
+> You must install v3.4.1 specifically. Do NOT run `npm install tailwindcss` without pinning the version.
+
 - Run: `cd frontend`
-- Run: `npm install -D tailwindcss postcss autoprefixer`
+- Run: `npm install -D tailwindcss@3.4.1 postcss autoprefixer`
 - Run: `npx tailwindcss init`
-- Configure Tailwind (I can help with this later)
 
 ☐ **3. Test Angular App**
 - Run: `ng serve`
@@ -157,7 +165,6 @@ Before starting, verify your school email works with these services:
 - Press Ctrl+C to stop server
 
 ☐ **4. Install Additional Packages**
-- Run: `npm install @angular/material @angular/cdk`
 - Run: `npm install angular-oauth2-oidc`
 
 ### Phase 3: Create ASP.NET Core Backend
@@ -167,7 +174,6 @@ Before starting, verify your school email works with these services:
   ```bash
   dotnet new webapi -n Backend
   ```
-- This creates a "Backend" folder with your API
 
 ☐ **2. Install Required NuGet Packages**
 - Run: `cd Backend`
@@ -175,10 +181,32 @@ Before starting, verify your school email works with these services:
 - Run: `dotnet add package Microsoft.EntityFrameworkCore.SqlServer`
 - Run: `dotnet add package Microsoft.EntityFrameworkCore.Tools`
 - Run: `dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer`
+- Run: `dotnet add package DotNetEnv`
+- Run: `dotnet add package BCrypt.Net-Next`
+- Run: `dotnet add package Azure.Storage.Blobs`
+- Run: `dotnet add package Swashbuckle.AspNetCore`
 
-☐ **3. Test .NET API**
+☐ **3. Create a `.env` file in the Backend folder**
+- This stores secrets locally and is never committed to GitHub
+- Add to `.gitignore`:
+  ```
+  .env
+  ```
+- Template:
+  ```
+  ConnectionStrings__DefaultConnection=your-connection-string
+  Authentication__Google__ClientId=your-google-client-id
+  Authentication__Microsoft__ClientId=your-microsoft-client-id
+  JWT_SIGNING_KEY=your-random-32-char-minimum-key
+  AZURE_BLOB_CONNECTION_STRING=your-blob-connection-string
+  Cors__AllowedOrigins__0=http://localhost:4200
+  ```
+
+> **⚠️ NOTE:** Environment variables use `__` (double underscore) as the separator and **always override** `appsettings.json`. If a value isn't loading, check `.env` first.
+
+☐ **4. Test .NET API**
 - Run: `dotnet run`
-- Open browser: https://localhost:7XXX/swagger (port will be shown in terminal)
+- Open browser: http://localhost:5227/swagger
 - ✓ Success = You should see Swagger API documentation
 - Press Ctrl+C to stop server
 
@@ -186,381 +214,364 @@ Before starting, verify your school email works with these services:
 
 > **⚠️ IMPORTANT: Resource Group Region vs Resource Region**
 >
-> Resource Group Region is just metadata (where Azure stores information about the group). It does **NOT** affect where your actual resources run. When creating resources like SQL Server, Storage Account, and App Service, choose the **SAME** actual region for all of them (not necessarily the same as the resource group region) to minimize latency and avoid cross-region data transfer costs.
+> Resource Group Region is just metadata. It does **NOT** affect where your actual resources run. When creating resources, choose the **SAME** actual region for all of them to minimize latency.
 >
-> **Example:**
-> - Resource Group Region: East US (just metadata)
-> - SQL Server Location: East US 2 (actual compute)
-> - Storage Account Location: East US 2 (actual storage)
-> - App Service Location: East US 2 (actual compute)
-> - ✓ All resources co-located in East US 2 = fast, low-cost data transfer
+> **Recommended:** Use East US 2 or West US 2 for all resources.
 
 ☐ **1. Create Resource Group**
 - Go to Azure Portal: https://portal.azure.com
-- Search for "Resource groups"
-- Click "+ Create"
+- Search for "Resource groups" → Click "+ Create"
 - Name: "campus-portfolio-rg"
-- Region: (Choose closest to you, e.g., "East US" - this is just metadata)
+- Region: East US (metadata only)
 - Click "Review + create" → "Create"
 
 ☐ **2. Create Azure SQL Database**
-- In Azure Portal, search "SQL databases"
-- Click "+ Create"
+- Search "SQL databases" → Click "+ Create"
 - Resource group: campus-portfolio-rg
 - Database name: "campus-portfolio-db"
 - Server: Create new server
   * Server name: campus-portfolio-server-[your-initials]
   * Admin login: sqladmin
-  * Password: (Create strong password, SAVE IT!)
-  * Location: Choose a specific region (e.g., East US 2) - this is the actual compute location
-- Compute + storage: Click "Configure"
-  * Choose: Basic (5 DTUs, 2GB) - Cheapest option for development
+  * Password: Create strong password, SAVE IT
+  * Location: East US 2 (actual compute)
+- Compute + storage: Basic (5 DTUs, 2GB)
 - Click "Review + create" → "Create"
-- ⚠️ IMPORTANT: After creation, go to server firewall settings
-  * Click "Add client IP" to allow your computer
-  * Click "Save"
+- ⚠️ After creation: Go to server firewall settings → Add client IP → Save
 
 ☐ **3. Get Database Connection String**
-- Go to your database in Azure Portal
-- Click "Connection strings" on left menu
-- Copy the "ADO.NET" connection string
-- Replace {your_password} with your actual SQL admin password
-- Save this somewhere secure (you'll need it later)
+- Go to your database → "Connection strings" → Copy ADO.NET string
+- Replace `{your_password}` with your actual password
+- Add to your `.env` file
 
-☐ **4. Create Azure Storage Account (for images/files)**
-- In Azure Portal, search "Storage accounts"
-- Click "+ Create"
+☐ **4. Create Azure Storage Account**
+- Search "Storage accounts" → Click "+ Create"
 - Resource group: campus-portfolio-rg
-- Storage account name: "campusportfolio[initials]" (must be globally unique, lowercase only)
-- Region: Choose the SAME region as your SQL Server (e.g., East US 2)
-- Performance: Standard
-- Redundancy: Locally-redundant storage (LRS)
+- Name: globally unique lowercase name
+- Region: Same as SQL Server (East US 2)
+- Performance: Standard, Redundancy: LRS
 - Click "Review + create" → "Create"
 
-☐ **5. Create Blob Container**
-- Go to your Storage Account
-- Click "Containers" on left menu
-- Click "+ Container"
-- Name: "project-media"
-- Public access level: Blob (anonymous read access for blobs only)
-- Click "Create"
+☐ **5. Create Blob Containers**
+- Go to Storage Account → Containers
+- Create: `profile-images` (Blob public access)
+- Create: `project-media` (Blob public access)
 
 ### Phase 5: Connect Everything Locally
 
-☐ **1. Add Database Connection String to Backend**
-- In Backend folder, open appsettings.json
-- Add your connection string:
-  ```json
-  "ConnectionStrings": {
-    "DefaultConnection": "YOUR-CONNECTION-STRING-HERE"
-  }
-  ```
+☐ **1. Add Connection String to `.env`**
+```
+ConnectionStrings__DefaultConnection=Server=tcp:your-server.database.windows.net,1433;Initial Catalog=your-db;...
+```
 
-☐ **2. Configure Entity Framework**
-- In Backend folder, create: Data/ApplicationDbContext.cs
-- Configure your database models based on your ERD
-- I can help with this code
+☐ **2. Configure Entity Framework in `ApplicationDbContext.cs`**
+- Create `Data/ApplicationDbContext.cs`
+- Register all entity DbSets
+- Configure relationships and constraints in `OnModelCreating`
 
-☐ **3. Create Database Migration**
-- Run: `dotnet ef migrations add InitialCreate`
-- Run: `dotnet ef database update`
-- This creates your database schema in Azure SQL
+☐ **3. Load `.env` in `Program.cs`**
+```csharp
+var cwd = Directory.GetCurrentDirectory();
+foreach (var path in new[] { Path.Combine(cwd, ".env"), Path.Combine(cwd, "..", ".env") })
+{
+    if (File.Exists(path)) { DotNetEnv.Env.Load(path); break; }
+}
+```
 
-☐ **4. Configure CORS (so Angular can talk to API)**
-- Edit Backend/Program.cs
-- Add CORS policy to allow localhost:4200
-- I can provide the exact code
+☐ **4. Remove `app.UseHttpsRedirection()` from `Program.cs`**
+
+> **⚠️ CRITICAL:** Azure App Service handles SSL termination at the load balancer level. If `UseHttpsRedirection()` is left in, it creates redirect loops in production. Remove it entirely — HTTPS is still enforced by Azure.
+
+☐ **5. Configure CORS in `Program.cs`**
+- Read allowed origins from config
+- Apply `AllowFrontend` policy
+- Place `app.UseCors()` BEFORE `app.UseAuthentication()`
+
+☐ **6. Run EF Migrations**
+```bash
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
 
 ### Phase 6: Setup GitHub Actions for Deployment
 
 ☐ **1. Create App Service for Backend API**
-- In Azure Portal, search "App Services"
-- Click "+ Create"
+- Search "App Services" → Click "+ Create"
 - Resource group: campus-portfolio-rg
-- Name: "campus-portfolio-api-[your-initials]"
+- Name: "jaywiki-api-[your-initials]"
 - Publish: Code
-- Runtime stack: .NET 8 (LTS)
+- Runtime stack: .NET 10
 - Operating System: Linux
-- Region: Choose the SAME region as your SQL Server and Storage Account (e.g., East US 2)
-- Pricing plan: Free F1 (for development)
+- Region: Same as SQL Server (East US 2)
+- Pricing plan: Basic B1 (recommended — F1 sleeps after 20 min inactivity)
 - Click "Review + create" → "Create"
 
-> **⚠️ NOTE: Free F1 App Service Sleep Behavior**
->
-> The Free F1 tier puts your app to sleep after 20 minutes of inactivity. The first request after idle will be slow (10-30 seconds) as Azure wakes up the app. This is normal for the free tier. For production, upgrade to Basic B1 or higher to avoid sleep.
+☐ **2. Add App Settings to App Service**
+- Go to App Service → Configuration → Application Settings
+- Add all secrets from `.env` as Application Settings (these override `appsettings.json` in production)
+- Key secrets to add: `ConnectionStrings__DefaultConnection`, `Authentication__Google__ClientId`, `Authentication__Microsoft__ClientId`, `JWT_SIGNING_KEY`, `AZURE_BLOB_CONNECTION_STRING`, `Cors__AllowedOrigins__0`
 
-☐ **2. Connect Backend to GitHub**
-- Go to your App Service
-- Click "Deployment Center" on left menu
-- Source: GitHub
-- Authorize GitHub access
-- Organization: Your GitHub username
-- Repository: Your repo name
-- Branch: main
-- Build provider: GitHub Actions
-- Click "Save"
-- ✓ This automatically creates .github/workflows/azure-backend.yml
+☐ **3. Connect Backend to GitHub**
+- Go to App Service → Deployment Center
+- Source: GitHub → Authorize
+- Select your org, repo, branch: main
+- Build provider: GitHub Actions → Save
+- ✓ Creates `.github/workflows/azure-backend.yml` automatically
 
-☐ **3. Create Static Web App for Frontend**
-- In Azure Portal, search "Static Web Apps"
-- Click "+ Create"
+☐ **4. Create Static Web App for Frontend**
+- Search "Static Web Apps" → Click "+ Create"
 - Resource group: campus-portfolio-rg
 - Name: "campus-portfolio-frontend"
 - Plan type: Free
-- Region: Choose closest (East US 2, West US 2, etc.)
-- Source: GitHub
-- Authorize and select your repository
-- Branch: main
+- Source: GitHub → Select your repo → Branch: main
 - Build presets: Angular
 - App location: /frontend
-- Output location: dist/frontend
-- Click "Review + create" → "Create"
-- ✓ This automatically creates .github/workflows/azure-static-web-apps.yml
+- Output location: `dist/frontend/browser`
 
-☐ **4. Test Automatic Deployment**
-- Make a small change in your code
-- Run: `git add .`
-- Run: `git commit -m "Test deployment"`
-- Run: `git push origin main`
-- Go to GitHub → Your repo → Actions tab
-- Watch the workflows run
+> **⚠️ IMPORTANT:** Angular 17+ with the `@angular/build:application` builder outputs to `dist/[project]/browser`, NOT `dist/[project]`. Using the wrong output location will deploy an empty app.
+
+- Click "Review + create" → "Create"
+
+☐ **5. Test Automatic Deployment**
+```bash
+git add .
+git commit -m "Test deployment"
+git push origin main
+```
+- Go to GitHub → Actions tab → Watch workflows
 - ✓ Success = Both workflows show green checkmarks
 
-### Phase 7: Configure Authentication
+### Phase 7: Configure OAuth Authentication
 
-> **⚠️ CRITICAL: Authentication Approach Decision**
+> **⚠️ CRITICAL: Authentication Approach**
 >
-> **DO NOT use Azure AD B2C unless you have verified IT access:**
-> Azure AD B2C requires special permissions that students often don't have. Before investing time in B2C setup, contact your IT department and verify you can create B2C tenants. If blocked, you'll waste days troubleshooting permissions.
->
-> **DO NOT use Auth0 if you want to avoid third-party services:**
-> Auth0 is a great service but adds an external dependency. For campus projects that need to be handed off to IT, direct OAuth integration is simpler and more maintainable.
->
-> **✓ RECOMMENDED: Direct OAuth with angular-oauth2-oidc**
-> This approach uses Google Cloud Console and Microsoft Entra ID App Registrations directly. No third-party service, no special permissions needed. Works with both @etown.edu Microsoft accounts and personal Google accounts.
+> **DO NOT use Azure AD B2C** — requires tenant admin permissions students typically don't have.
+> **DO NOT use Auth0** — adds third-party dependency, complicates IT handoff.
+> **✓ USE: Direct OAuth with `angular-oauth2-oidc`** — no special permissions, works with both campus and personal accounts.
 
 #### Google OAuth Setup
 
 ☐ **1. Create Google OAuth App**
 - Go to: https://console.cloud.google.com
-- Create new project or select existing
-- Navigate to: APIs & Services → Credentials
-- Click "Create Credentials" → "OAuth 2.0 Client ID"
+- APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID
 - Application type: Web application
-- Name: "Campus Portfolio System"
-- Authorized JavaScript origins:
-  * http://localhost:4200
-- Authorized redirect URIs:
-  * http://localhost:4200/index.html
-- Click "Create"
-- Save your Client ID (you'll need this later)
+- Authorized JavaScript origins: `http://localhost:4200`
+- Authorized redirect URIs: `http://localhost:4200/index.html`
+- Save your Client ID
+
+> **Note:** `angular-oauth2-oidc` requires a `dummyClientSecret` for SPA code flows even though Google doesn't actually use it. Set it to any non-empty string in your environment config.
 
 #### Microsoft OAuth Setup
 
 ☐ **2. Create Microsoft App Registration**
-- Go to: https://portal.azure.com
-- Search for "App registrations"
-- Click "+ New registration"
-- Name: "Campus Portfolio System"
-- Supported account types: Accounts in any organizational directory and personal Microsoft accounts
-- Redirect URI: Single-page application (SPA)
-  * http://localhost:4200/index.html
+- Go to: https://portal.azure.com → App registrations → New registration
+- Name: "JayWiki"
+- Supported account types: **Accounts in any organizational directory AND personal Microsoft accounts**
+- Redirect URI: Single-page application (SPA) → `http://localhost:4200/index.html`
 - Click "Register"
-- From the Overview page, copy:
-  * Application (client) ID
-  * Directory (tenant) ID
+- Copy Application (client) ID
 
-#### Frontend Configuration
+> **Note:** Use the `common` endpoint (`https://login.microsoftonline.com/common/v2.0`) to support both campus and personal Microsoft accounts. Set `skipIssuerCheck: true` in frontend config and `ValidateIssuer: false` in backend — tokens from the common endpoint have tenant-specific issuers that don't match the common issuer URL. Security is maintained via signature and audience validation.
 
-☐ **3. Configure Angular with angular-oauth2-oidc**
-- Update frontend/src/app/app.config.ts:
-  * Import OAuthModule and provideOAuthClient()
-  * Configure Google and Microsoft as OIDC providers
-  * Set clientId, redirectUri, scope, issuer per provider
-- I can provide the exact configuration code
+#### Backend JWT Configuration
 
-#### Backend Configuration
+☐ **3. Configure triple JWT Bearer schemes in `Program.cs`**
+- "Google" scheme: validates ID tokens against Google clientId
+- "Microsoft" scheme: validates access tokens via common endpoint, `ValidateIssuer: false`
+- "Local" scheme: validates backend-issued JWTs using `JWT_SIGNING_KEY`
+- Policy-based `MultiScheme` selector inspects `iss` claim to route to correct scheme
 
-☐ **4. Configure Backend JWT Validation**
-- Update Backend/appsettings.json with:
-  * Google:ClientId
-  * Microsoft:ClientId, Microsoft:TenantId
-- Update Backend/Program.cs:
-  * AddAuthentication() with multiple JWT Bearer schemes
-  * One scheme for Google tokens, one for Microsoft tokens
-  * Policy-based scheme selector that inspects token issuer claim
-- I can provide the exact code for both files
-
-☐ **5. Protect API Routes**
-- Add [Authorize] attribute to controllers that require login
-- Use [AllowAnonymous] for public endpoints
+☐ **4. Protect API Routes**
+- Add `[Authorize]` to controllers
+- Add `[AllowAnonymous]` to public endpoints
 
 #### Production OAuth Setup
 
-☐ **6. Update OAuth Redirect URIs for Production**
-- After Static Web App is created, add its URL to both OAuth providers:
-- Google Cloud Console → your OAuth app → Authorized redirect URIs:
-  * Add: https://YOUR-APP.azurestaticapps.net/index.html
-- Azure App Registration → Authentication:
-  * Add: https://YOUR-APP.azurestaticapps.net/index.html
+☐ **5. Update OAuth Redirect URIs for Production**
+- Google Cloud Console → Authorized redirect URIs: add `https://YOUR-APP.azurestaticapps.net/index.html`
+- Azure App Registration → Authentication: add same URL as SPA redirect URI
+
+### Phase 8: Configure Local Auth (Email + Password)
+
+☐ **1. Generate a JWT Signing Key**
+- Must be minimum 32 characters
+- Generate in PowerShell:
+  ```powershell
+  [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+  ```
+- Add to `.env`: `JWT_SIGNING_KEY=your-generated-key`
+- Add to Azure App Service Application Settings with same key
+
+☐ **2. Create `Models/JwtSigningConfig.cs`**
+```csharp
+public class JwtSigningConfig
+{
+    public string SigningKey { get; set; } = string.Empty;
+    public string Issuer { get; set; } = string.Empty;
+    public string Audience { get; set; } = string.Empty;
+}
+```
+
+☐ **3. Register in `Program.cs`**
+```csharp
+builder.Services.AddSingleton(new JwtSigningConfig
+{
+    SigningKey = localSigningKey,
+    Issuer     = "jaywiki-api",
+    Audience   = "jaywiki-app"
+});
+```
+
+☐ **4. Create `AuthController.cs`**
+- `POST /api/auth/register` — create account, return JWT
+- `POST /api/auth/login` — verify BCrypt hash, return JWT
+- `POST /api/auth/link` — link local identity to existing OAuth account
+
+☐ **5. Update Angular interceptor**
+- Check `sessionStorage auth_provider`
+- If `"local"` → read token from `localStorage local_token`
+- If `"google"` → read ID token from `angular-oauth2-oidc`
+- If `"microsoft"` → read access token from `angular-oauth2-oidc`
 
 ---
 
 ## VERIFICATION CHECKLIST
 
 ### Backend Working:
-
-☐ Can run locally: dotnet run  
-☐ Can access Swagger UI  
-☐ Database connection works  
-☐ Can create/read from database  
-☐ Deployed to Azure App Service  
-☐ API is accessible via Azure URL  
+☐ `dotnet run` starts without errors
+☐ Swagger loads at `http://localhost:5227/swagger`
+☐ Database connection works (check terminal for EF errors)
+☐ `POST /api/users/me` creates user + identity rows in DB
+☐ Deployed to Azure App Service
+☐ API accessible via Azure URL
 
 ### Frontend Working:
+☐ `ng serve` starts without errors
+☐ Angular app loads at `http://localhost:4200`
+☐ Tailwind CSS styling works
+☐ Deployed to Azure Static Web Apps
+☐ Frontend accessible via Azure URL
 
-☐ Can run locally: ng serve  
-☐ Can see Angular app in browser  
-☐ Tailwind CSS styling works  
-☐ Deployed to Azure Static Web Apps  
-☐ Frontend is accessible via Azure URL  
+### Authentication Working:
+☐ Google OAuth login succeeds → user row created in DB
+☐ Microsoft OAuth login succeeds → user row created in DB
+☐ Local register creates user + BCrypt hash in DB
+☐ Local login returns JWT token
+☐ All three providers navigate to dashboard after login
+☐ `GET /api/users/me` returns correct user for each provider
 
 ### Integration Working:
-
-☐ Frontend can call backend API  
-☐ Authentication works (can login with Google)  
-☐ Authentication works (can login with Microsoft)  
-☐ Can create/read/update/delete data  
-☐ File uploads work (to Azure Blob Storage)  
+☐ Frontend can call backend API (no CORS errors)
+☐ Auth interceptor attaches correct Bearer token per provider
+☐ Protected endpoints return 401 without token
+☐ Protected endpoints return 403 for unauthorized users
 
 ### DevOps Working:
-
-☐ Code is in GitHub repository  
-☐ Push to main triggers automatic deployment  
-☐ Both frontend and backend deploy successfully  
-☐ Can see deployment logs in GitHub Actions  
+☐ Push to main triggers automatic deployment
+☐ Both workflows show green checkmarks in GitHub Actions
+☐ Production app uses Azure App Settings (not `.env`)
 
 ---
 
 ## NEXT STEPS AFTER SETUP
 
-Once you complete the setup and verification checklist, you're ready to start building features:
+Once the checklist is complete:
 
-- Create database models based on your ERD
-- Create API controllers (Users, Projects, Events, etc.)
-- Create Angular components (forms, lists, detail pages)
-- Implement authentication flow
-- Add file upload functionality
+- Build API controllers (Projects, Courses, Events, Jobs, Socials)
+- Create Angular components (dashboard, profile, project detail pages)
+- Implement file upload to Azure Blob Storage
 - Style with Tailwind CSS
-- Test everything
-- Deploy to production
+- Write unit and integration tests
+- Deploy to production and verify end-to-end
 
 ---
 
 ## TROUBLESHOOTING COMMON ISSUES
 
 ### Issue: "Cannot connect to Azure SQL Database"
-
-**Solution:**
-- Check firewall rules in Azure Portal
-- Add your IP address to allowed IPs
-- Verify connection string is correct
+- Check firewall rules — add your IP in Azure Portal
+- Verify connection string is correct in `.env`
 - Check if password contains special characters that need escaping
 
 ### Issue: "GitHub Actions deployment fails"
-
-**Solution:**
 - Check workflow logs in GitHub Actions tab
-- Verify Azure credentials are correct
-- Check build logs for errors
-- Make sure workflow file paths match your project structure
+- Verify Azure credentials are set as GitHub Secrets
+- For Angular: confirm output location is `dist/frontend/browser` not `dist/frontend`
 
 ### Issue: "CORS errors in browser console"
+- Check `.env` — `Cors__AllowedOrigins__0` overrides `appsettings.json`
+- Confirm `app.UseCors()` is before `app.UseAuthentication()` in `Program.cs`
+- Restart backend after any config changes
 
-**Solution:**
-- Update CORS policy in Backend/Program.cs
-- Make sure Angular app URL is allowed
-- Restart backend after changes
-- Verify both localhost:4200 AND your Azure Static Web App URL are in the CORS policy
+### Issue: "Authentication not working (OAuth)"
+- Verify redirect URIs match EXACTLY in Google/Microsoft console
+- For Microsoft: confirm redirect URI type is "Single-page application (SPA)" not "Web"
+- For Microsoft: confirm `skipIssuerCheck: true` in frontend, `ValidateIssuer: false` in backend
+- Clear browser cache and cookies between attempts
 
-### Issue: "Authentication not working"
+### Issue: "Authentication not working (Local)"
+- Confirm `JWT_SIGNING_KEY` is set in `.env` (min 32 chars)
+- Confirm `sessionStorage auth_provider` is set to `"local"` after login
+- Confirm interceptor reads `localStorage local_token` for local provider
 
-**Solution:**
-- Verify redirect URIs in Google Cloud Console / Azure App Registration match EXACTLY
-- Check browser console for OIDC errors
-- Ensure Client IDs are correct in app config
-- Clear browser cache and cookies
-- For Microsoft: verify tenant ID and supported account types are correct
-- For Microsoft: make sure redirect URI is registered as 'Single-page application (SPA)' type, not 'Web'
-- Check that backend JWT validation schemes match the token issuer claims
+### Issue: "Swagger 500 error on startup"
+- If you have an `IFormFile` endpoint: wrap parameter in a class instead of using it directly
+- Add `[Consumes("multipart/form-data")]` to the file upload endpoint only — not the whole controller
 
 ### Issue: "Azure AD B2C setup failing"
-
-**Solution:**
-- DO NOT use Azure AD B2C unless you verified IT permissions first
-- Students often don't have permissions to create B2C tenants
-- If you're blocked by permissions, switch to direct OAuth approach (Phase 7 above)
-- Contact IT department to request B2C access OR use the direct OAuth approach instead
-
-### Issue: "Azure for Students not available"
-
-**Solution:**
-- Use regular Azure free tier (still get $200 credit for 30 days)
-- Or use Azure SQL free tier database
-- Contact your school IT department for education access
+- Stop — do not use B2C unless IT confirmed you have tenant admin access
+- Switch to direct OAuth via `angular-oauth2-oidc` with the common endpoint (see Phase 7)
 
 ### Issue: "App Service taking 30+ seconds to load"
+- Normal for Free F1 tier — app sleeps after 20 min inactivity
+- Upgrade to Basic B1 to eliminate cold starts
 
-**Solution:**
-- This is NORMAL for Free F1 tier after 20 minutes of inactivity
-- Azure puts the app to sleep to save resources
-- First request wakes up the app (slow), subsequent requests are fast
-- For production, upgrade to Basic B1 or higher to avoid sleep
+### Issue: "`app.UseHttpsRedirection()` causing redirect loops in production"
+- Remove it from `Program.cs` — Azure handles SSL termination at the load balancer
+- HTTPS is still enforced; this middleware is redundant and harmful on Azure
 
 ---
 
 ## COST MANAGEMENT
 
-### With Azure for Students ($100 credit):
+### Recommended Setup (B1 for production quality):
+- Azure App Service B1: ~$13/month
+- Azure SQL Database Basic (5 DTUs): ~$5/month
+- Azure Blob Storage: ~$0.50/month
+- Static Web Apps: **Free**
+- OAuth (all 3 providers): **Free**
+- **Total: ~$18.50/month** — within $100 Azure student credit for 5+ months
 
-- OAuth (Google + Microsoft): **Free** — no third-party service
-- Azure SQL Database (Basic): **~$5/month**
-- App Service (Free F1): **$0/month**
-- Static Web Apps (Free): **$0/month**
-- Storage Account: **~$0.50/month**
-- **Total: ~$5.50/month** (well within student credit)
+### Budget Setup (F1 for pure development):
+- Azure App Service F1: **$0/month** (cold starts after 20 min idle)
+- Azure SQL Database Basic: ~$5/month
+- Azure Blob Storage: ~$0.50/month
+- **Total: ~$5.50/month**
 
-### Tips to stay within free tier:
-
-- Use Free F1 App Service tier for development
-- Use Basic SQL Database (smallest size)
-- Delete resources when not actively developing
+### Tips:
 - Set up cost alerts in Azure Portal
 - Co-locate all resources in the same region to avoid data transfer costs
+- Delete unused resources when not actively developing
 
 ---
 
 ## HELPFUL RESOURCES
 
 ### Documentation:
-
-- Angular: https://angular.io/docs
+- Angular: https://angular.dev/docs
 - ASP.NET Core: https://docs.microsoft.com/en-us/aspnet/core/
-- Entity Framework: https://docs.microsoft.com/en-us/ef/core/
-- Azure: https://docs.microsoft.com/en-us/azure/
-- angular-oauth2-oidc: https://github.com/manfredsteyer/angular-oauth2-oidc
-- Google OAuth setup: https://console.cloud.google.com
+- Entity Framework Core: https://docs.microsoft.com/en-us/ef/core/
+- azure-oauth2-oidc: https://github.com/manfredsteyer/angular-oauth2-oidc
+- Google Cloud Console: https://console.cloud.google.com
 - Microsoft App Registration: https://portal.azure.com
-- ASP.NET Core OAuth docs: https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/
-
-### YouTube Tutorials:
-
-- "ASP.NET Core Web API Tutorial" by freeCodeCamp
-- "Angular Tutorial for Beginners" by Programming with Mosh
-- "Azure Fundamentals" by Microsoft Learn
+- Azure Blob Storage SDK: https://docs.microsoft.com/en-us/azure/storage/blobs/
 
 ### Support:
-
 - Stack Overflow: https://stackoverflow.com
 - GitHub Issues (for specific packages)
-- Your school IT department (for campus integration)
+- School IT department (for campus Microsoft account support)
+
+### See Also:
+- `LESSONS_LEARNED.md` — gotchas, surprises, and non-obvious decisions encountered during development
+- `DB_SCHEMA.md` — full entity relationship diagram and schema documentation
+- `AUTH_FLOW.md` — detailed authentication flow diagrams for all three providers
+- `ARCHITECTURE.md` — system architecture and Azure infrastructure overview
