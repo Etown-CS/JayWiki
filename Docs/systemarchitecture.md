@@ -19,18 +19,18 @@ flowchart TB
         end
         
         subgraph Application["Application Tier"]
-            AppService["Azure App Service (B1 Tier)<br/>ASP.NET Core Web API<br/>(.NET 8 + Entity Framework Core)"]
+            AppService["Azure App Service<br/>ASP.NET Core Web API<br/>(.NET 10 + Entity Framework Core 10)<br/>Local auth issued here (email/password JWT)"]
         end
         
         subgraph Data["Data Tier"]
-            SQL["Azure SQL Database<br/>(Basic Tier, 5 DTUs)<br/>Relational Data Storage"]
-            Blob["Azure Blob Storage<br/>Multimedia Content<br/>(Images, Videos)"]
+            SQL["Azure SQL Database<br/>Relational Data Storage<br/>(Users, Projects, Courses, Events)"]
+            Blob["Azure Blob Storage<br/>Multimedia Content<br/>(Profile Images, Media)"]
         end
     end
     
-    subgraph Auth["Authentication Providers"]
-        Google["Google OAuth 2.0"]
-        Microsoft["Microsoft Entra ID<br/>(Campus SSO)"]
+    subgraph Auth["External Authentication Providers"]
+        Google["Google OAuth 2.0<br/>(Personal Google accounts)"]
+        Microsoft["Microsoft Entra ID<br/>(common endpoint)<br/>(@etown.edu + personal Microsoft accounts)"]
     end
     
     %% User interactions
@@ -75,32 +75,41 @@ flowchart TB
 - **Azure Static Web Apps:** Hosts Angular single-page application with global CDN distribution
 
 **Application Tier (Blue):**
-- **Azure App Service (B1):** Hosts ASP.NET Core Web API with dedicated compute resources
+- **Azure App Service:** Hosts ASP.NET Core Web API
+- Also acts as local auth issuer — generates and validates its own signed JWTs for email/password accounts (no external provider involved)
 
 **Data Tier (Blue):**
-- **Azure SQL Database:** Stores structured data (users, projects, courses, events)
-- **Azure Blob Storage:** Stores multimedia content (images, videos)
+- **Azure SQL Database:** Stores structured data (users, identities, projects, courses, events)
+- **Azure Blob Storage:** Stores profile images and project media
 
-**Authentication Providers (Red):**
-- **Google OAuth 2.0:** External user authentication
-- **Microsoft Entra ID:** Campus SSO for @etown.edu accounts
+**External Authentication Providers (Red):**
+- **Google OAuth 2.0:** Personal Google accounts; frontend sends ID token to backend
+- **Microsoft Entra ID (common endpoint):** Supports both @etown.edu organizational accounts and personal Microsoft accounts; registered under a personal `etownjaywiki@outlook.com` app registration (school tenant registration blocked by IT); frontend sends access token to backend
 
 **CI/CD Pipeline (Orange):**
 - **GitHub:** Version control and source repository
 - **GitHub Actions:** Automated build, test, and deployment workflows
+
+## Authentication Providers Summary
+
+| Provider | Type | Token Sent | Handled By |
+|----------|------|------------|------------|
+| Google OAuth 2.0 | External | ID token | Backend Google JWT scheme |
+| Microsoft Entra ID | External (common endpoint) | Access token | Backend Microsoft JWT scheme |
+| Local (email/password) | Internal | Backend-issued JWT | Backend Local JWT scheme |
 
 ## Key Communication Paths
 
 - **Solid arrows (→):** Primary data flow
 - **Dashed arrows (-.->):** Authentication/deployment flows
 - **HTTPS:** All client-facing communications encrypted
-- **JWT:** API requests authenticated with JSON Web Tokens
+- **JWT:** API requests authenticated with JSON Web Tokens (Google ID token, Microsoft access token, or locally-issued JWT)
 - **REST API:** RESTful endpoints following standard HTTP methods
 
 ## Architecture Highlights
 
 1. **Three-Tier Separation:** Clear separation of concerns between presentation, application, and data layers
 2. **Cloud-Native:** Fully managed Azure services with automatic scaling and high availability
-3. **Hybrid Authentication:** Supports both campus SSO and external OAuth providers
-4. **Automated Deployment:** CI/CD pipeline ensures consistent deployments
-5. **Cross-Region Configuration:** App Service (East US) and SQL Database (West US 2) - noted as area for future optimization
+3. **Triple Authentication:** Google OAuth, Microsoft Entra ID (common endpoint), and local email/password — all validated via a policy-based multi-scheme JWT selector
+4. **Automated Deployment:** CI/CD pipeline ensures consistent deployments via GitHub Actions
+5. **Cross-Region Configuration:** App Service and SQL Database should be co-located in the same Azure region to minimize latency and avoid cross-region data transfer costs
