@@ -157,8 +157,6 @@ var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>();
 
-Console.WriteLine($"✅ CORS origins loaded: {string.Join(", ", allowedOrigins)}");
-
 if (allowedOrigins is null || allowedOrigins.Length == 0)
 {
     if (builder.Environment.IsDevelopment())

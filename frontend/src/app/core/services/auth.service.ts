@@ -52,6 +52,8 @@ export class AuthService {
     localStorage.removeItem('id_token');
     localStorage.removeItem('nonce');
     localStorage.removeItem('PKCE_verifier');
+    localStorage.removeItem('local_token');
+    localStorage.removeItem('local_user_name');
   }
 
   // Calls POST /api/users/me to upsert the user in the database after login.
@@ -138,6 +140,9 @@ export class AuthService {
 
   get isLoggedIn(): boolean {
     const provider = sessionStorage.getItem('auth_provider');
+    if (provider === 'local') {
+      return !!localStorage.getItem('local_token');
+    }
     if (provider === 'microsoft') {
       return this.oauthService.hasValidIdToken() && this.oauthService.hasValidAccessToken();
     }
@@ -157,6 +162,12 @@ export class AuthService {
   }
 
   get userName(): string {
+    const provider = sessionStorage.getItem('auth_provider');
+
+    if (provider === 'local') {
+      return localStorage.getItem('local_user_name') ?? 'User';
+    }
+
     const claims = this.claims;
     return (claims?.['name'] as string) ?? (claims?.['email'] as string) ?? 'User';
   }

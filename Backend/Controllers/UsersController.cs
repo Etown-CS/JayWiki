@@ -277,6 +277,51 @@ public class UsersController : ControllerBase
         return Ok(new { profileImageUrl = newImageUrl });
     }
 
+    // GET api/users/{id} — get a specific user by ID (public)
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<object>> GetById(int id)
+    {
+        var user = await _db.Users
+            .Include(u => u.Identities)
+            .FirstOrDefaultAsync(u => u.UserId == id);
+
+        if (user is null)
+            return NotFound(new { message = $"User {id} not found." });
+
+        return Ok(new
+        {
+            user.UserId,
+            user.Name,
+            user.Role,
+            user.ProfileImageUrl,
+            user.CreatedAt,
+            PrimaryEmail = user.Identities
+                .FirstOrDefault(i => i.IsPrimary)?.ProviderEmail
+        });
+    }
+
+    // DELETE api/users/me — delete own account
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMe()
+    {
+        var user = await GetCurrentUserAsync();
+        if (user is null) return NotFound();
+
+        // Delete profile image from blob storage if exists
+        if (!string.IsNullOrEmpty(user.ProfileImageUrl))
+        {
+            try { await _blobStorage.DeleteBlobAsync(user.ProfileImageUrl); }
+            catch (Exception ex)
+            { Console.WriteLine($"Warning: failed to delete profile image on account deletion: {ex.Message}"); }
+        }
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     // GET api/users — public
     [HttpGet]
     [AllowAnonymous]
