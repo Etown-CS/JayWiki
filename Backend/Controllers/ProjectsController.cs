@@ -182,7 +182,7 @@ public class ProjectsController : ProjectBaseController
         var validTypes   = new[] { "academic", "research", "club", "personal" };
         var validStatuses = new[] { "active", "completed", "archived" };
 
-        if (!validTypes.Contains(request.ProjectType))
+        if (!string.IsNullOrWhiteSpace(request.ProjectType) && !validTypes.Contains(request.ProjectType))
             return BadRequest(new { message = $"Invalid project type. Must be one of: {string.Join(", ", validTypes)}." });
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !validStatuses.Contains(request.Status))

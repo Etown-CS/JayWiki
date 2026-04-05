@@ -25,10 +25,14 @@ public abstract class ProjectBaseController : ControllerBase
 
         if (string.IsNullOrEmpty(email)) return null;
 
-        // Look up via identity table — works for all three providers
+        var issuer   = User.FindFirstValue("iss") ?? "";
+        var provider = issuer.Contains("accounts.google.com", StringComparison.OrdinalIgnoreCase) ? "google"
+                    : issuer.Contains("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) ? "microsoft"
+                    : "local";
+
         var identity = await _context.UserIdentities
             .Include(i => i.User)
-            .FirstOrDefaultAsync(i => i.ProviderEmail == email);
+            .FirstOrDefaultAsync(i => i.Provider == provider && i.ProviderEmail == email);
 
         return identity?.User;
     }

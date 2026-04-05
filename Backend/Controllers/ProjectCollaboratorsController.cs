@@ -59,13 +59,17 @@ public class ProjectCollaboratorsController : ProjectBaseController
         if (!await IsProjectOwnerAsync(projectId, currentUser.UserId))
             return Forbid();
 
-        // Look up target user via UserIdentity
+        // Normalize email and look up user by primary identity
+        var normalizedEmail = request.Email?.Trim().ToLower();
+        if (string.IsNullOrWhiteSpace(normalizedEmail))
+            return BadRequest(new { message = "Email is required." });
+
         var targetIdentity = await _context.UserIdentities
             .Include(i => i.User)
-            .FirstOrDefaultAsync(i => i.ProviderEmail == request.Email);
+            .FirstOrDefaultAsync(i => i.ProviderEmail == normalizedEmail);
 
         if (targetIdentity == null)
-            return NotFound(new { message = $"No user found with email '{request.Email}'." });
+            return NotFound(new { message = $"No user found with email '{normalizedEmail}'." });
 
         var targetUser = targetIdentity.User;
 
@@ -75,7 +79,7 @@ public class ProjectCollaboratorsController : ProjectBaseController
         var alreadyCollaborator = await _context.ProjectCollaborators
             .AnyAsync(pc => pc.ProjectId == projectId && pc.UserId == targetUser.UserId);
         if (alreadyCollaborator)
-            return Conflict(new { message = $"{request.Email} is already a collaborator on this project." });
+            return Conflict(new { message = $"{normalizedEmail} is already a collaborator on this project." });
 
         var collaborator = new ProjectCollaborator
         {
@@ -95,7 +99,7 @@ public class ProjectCollaboratorsController : ProjectBaseController
                 collaborator.ProjectId,
                 collaborator.UserId,
                 targetUser.Name,
-                Email = request.Email,
+                Email = normalizedEmail,
                 collaborator.AddedAt
             });
     }
