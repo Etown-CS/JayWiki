@@ -152,9 +152,25 @@ public class CoursesController : ProjectBaseController
         if (enrollment == null)
             return NotFound(new { message = $"Course {id} not found for user {userId}." });
 
-        enrollment.Semester = request.Semester?.Trim() ?? enrollment.Semester;
-        enrollment.Year = request.Year ?? enrollment.Year;
-        enrollment.Instructor = request.Instructor?.Trim() ?? enrollment.Instructor;
+        // Fix #2 — normalize inputs before comparison
+        var semester  = request.Semester?.Trim() ?? enrollment.Semester;
+        var year      = request.Year ?? enrollment.Year;
+        var instructor = request.Instructor?.Trim() ?? enrollment.Instructor;
+
+        // Fix #1 — duplicate check excluding current record
+        var duplicate = await _context.Courses.AnyAsync(c =>
+            c.UserId == userId &&
+            c.CatalogId == enrollment.CatalogId &&
+            c.Semester == semester &&
+            c.Year == year &&
+            c.CourseId != id);  // ← exclude self
+
+        if (duplicate)
+            return Conflict(new { message = "User is already enrolled in this course for that semester and year." });
+
+        enrollment.Semester   = semester;
+        enrollment.Year       = year;
+        enrollment.Instructor = instructor;
 
         await _context.SaveChangesAsync();
 

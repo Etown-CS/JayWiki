@@ -44,14 +44,18 @@ public class UsersController : ControllerBase
             _ => "unknown"
         };
 
+    // Fix #2 + #3 — scope by provider AND eagerly load all identities for BuildUserResponse
     private async Task<User?> GetCurrentUserAsync()
     {
-        var email = ResolveEmail();
+        var email    = ResolveEmail();
         if (string.IsNullOrWhiteSpace(email)) return null;
+
+        var provider = ResolveProvider();
 
         var identity = await _db.UserIdentities
             .Include(i => i.User)
-            .FirstOrDefaultAsync(i => i.ProviderEmail == email);
+                .ThenInclude(u => u.Identities)  // ← fix #3: load all identities
+            .FirstOrDefaultAsync(i => i.Provider == provider && i.ProviderEmail == email);  // ← fix #2: scope by provider
 
         return identity?.User;
     }
@@ -64,17 +68,21 @@ public class UsersController : ControllerBase
         var name     = ResolveName();
         var provider = ResolveProvider();
 
+        // Fix #1 — reject unrecognized providers before touching the DB
+        if (provider == "unknown")
+            return BadRequest(new { message = "Token issuer not recognized. Use Google, Microsoft, or local login." });
+
         if (string.IsNullOrWhiteSpace(email))
             return BadRequest("Token is missing an email claim.");
 
         // Check if this specific provider+email identity already exists
         var existingIdentity = await _db.UserIdentities
             .Include(i => i.User)
+                .ThenInclude(u => u.Identities)
             .FirstOrDefaultAsync(i => i.Provider == provider && i.ProviderEmail == email);
 
         if (existingIdentity is not null)
         {
-            // Update name in case it changed
             existingIdentity.User.Name      = name;
             existingIdentity.User.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
@@ -84,17 +92,16 @@ public class UsersController : ControllerBase
         // Check if a user exists with this email on a different provider — link instead of duplicate
         var existingOtherIdentity = await _db.UserIdentities
             .Include(i => i.User)
+                .ThenInclude(u => u.Identities)
             .FirstOrDefaultAsync(i => i.ProviderEmail == email && i.Provider != provider);
 
         User user;
         if (existingOtherIdentity is not null)
         {
-            // Link new provider to existing user account
             user = existingOtherIdentity.User;
         }
         else
         {
-            // Brand new user
             user = new User
             {
                 Name      = name,
@@ -124,14 +131,17 @@ public class UsersController : ControllerBase
             when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
                   && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
         {
-            // Race condition — identity was inserted concurrently
             var concurrent = await _db.UserIdentities
                 .Include(i => i.User)
+                    .ThenInclude(u => u.Identities)
                 .FirstOrDefaultAsync(i => i.Provider == provider && i.ProviderEmail == email);
             if (concurrent is not null)
                 return Ok(BuildUserResponse(concurrent.User, email));
             throw;
         }
+
+        // Reload user with identities for accurate BuildUserResponse
+        await _db.Entry(user).Collection(u => u.Identities).LoadAsync();
 
         return CreatedAtAction(nameof(GetMe), BuildUserResponse(user, email));
     }
@@ -200,7 +210,6 @@ public class UsersController : ControllerBase
         if (target is null)
             return NotFound(new { message = "Identity not found." });
 
-        // Clear current primary, set new one
         var allIdentities = await _db.UserIdentities
             .Where(i => i.UserId == user.UserId)
             .ToListAsync();
@@ -230,7 +239,6 @@ public class UsersController : ControllerBase
         if (target is null)
             return NotFound(new { message = "Identity not found." });
 
-        // If removing primary, auto-assign next available as primary
         if (target.IsPrimary)
         {
             var next = identities.First(i => i.IdentityId != identityId);
@@ -308,7 +316,6 @@ public class UsersController : ControllerBase
         var user = await GetCurrentUserAsync();
         if (user is null) return NotFound();
 
-        // Delete profile image from blob storage if exists
         if (!string.IsNullOrEmpty(user.ProfileImageUrl))
         {
             try { await _blobStorage.DeleteBlobAsync(user.ProfileImageUrl); }
