@@ -9,17 +9,17 @@ public class ApplicationDbContext : DbContext
         : base(options) { }
 
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<UserIdentity> UserIdentities { get; set; } = null!;
     public DbSet<Job> Jobs { get; set; } = null!;
     public DbSet<Social> Socials { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
-
     public DbSet<CourseCatalog> CourseCatalog { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<Topic> Topics { get; set; } = null!;
     public DbSet<ProjectMedia> ProjectMedia { get; set; } = null!;
-    public DbSet<Event> Events { get; set; } = null!;
-
     public DbSet<ProjectCollaborator> ProjectCollaborators { get; set; } = null!;
+    public DbSet<Event> Events { get; set; } = null!;
+    public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
     public DbSet<EventMedia> EventMedia { get; set; } = null!;
     public DbSet<Award> Awards { get; set; } = null!;
 
@@ -27,17 +27,28 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // User -- default role and unique email
+        // ── User ──────────────────────────────────────────────────────────────
+        // Email and AuthProvider removed from User — now live in UserIdentity
         modelBuilder.Entity<User>()
             .Property(u => u.Role)
             .HasDefaultValue("student");
 
-        // User -- unique email constraint
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
+        // ── UserIdentity ──────────────────────────────────────────────────────
+        // Unique per provider+email combination — prevents duplicate linked accounts
+        modelBuilder.Entity<UserIdentity>(entity =>
+        {
+            entity.HasKey(e => e.IdentityId);
+            entity.HasIndex(e => new { e.Provider, e.ProviderEmail }).IsUnique();
 
-        // Course Catalog → User (creator) with unique course code
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Identities)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── CourseCatalog ─────────────────────────────────────────────────────
+        // Unique course code; restrict delete so removing an instructor
+        // doesn't cascade-delete the catalog entries they created
         modelBuilder.Entity<CourseCatalog>(entity =>
         {
             entity.HasKey(e => e.CatalogId);
@@ -46,41 +57,39 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.CreatedBy)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict); // don't cascade-delete catalog if user deleted
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Course → Course Catalog (required) and User (instructor, required)
+        // ── Course (enrollment) ───────────────────────────────────────────────
+        // Restrict delete so removing a catalog entry doesn't wipe enrollments
         modelBuilder.Entity<Course>(entity =>
         {
             entity.HasOne(e => e.Catalog)
                 .WithMany(c => c.Courses)
                 .HasForeignKey(e => e.CatalogId)
-                .OnDelete(DeleteBehavior.Restrict); // don't wipe enrollments if catalog entry deleted
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // EventRegistration — composite unique constraint (user can't register twice)
-        modelBuilder.Entity<EventRegistration>()
-            .HasIndex(er => new { er.UserId, er.EventId })
-            .IsUnique();
+        // ── Project ───────────────────────────────────────────────────────────
+        // Primary ownership via User (NoAction to avoid multiple cascade paths)
+        // Course association is optional — deleting a course does not delete projects
+        modelBuilder.Entity<Project>(entity =>
+        {
+            entity.HasOne(p => p.User)
+                .WithMany(u => u.Projects)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
 
-        // Project → User (primary ownership, required)
-        modelBuilder.Entity<Project>()
-            .HasOne(p => p.User)
-            .WithMany(u => u.Projects)
-            .HasForeignKey(p => p.UserId)
-            .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(p => p.Course)
+                .WithMany(c => c.Projects)
+                .HasForeignKey(p => p.CourseId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
 
-        // Project → Course (optional association)
-        // SetNull so deleting a course doesn't delete the user's project
-        modelBuilder.Entity<Project>()
-            .HasOne(p => p.Course)
-            .WithMany(c => c.Projects)
-            .HasForeignKey(p => p.CourseId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.NoAction); // SQL Server can't handle SetNull + cascade from User
-
-        // ProjectCollaborator — many-to-many join with extra fields
-        // Unique constraint to prevent duplicate collaborations
+        // ── ProjectCollaborator ───────────────────────────────────────────────
+        // Unique per project+user; cascade from project but not from user
+        // (NoAction on user side avoids multiple cascade path conflict)
         modelBuilder.Entity<ProjectCollaborator>(entity =>
         {
             entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
@@ -91,9 +100,15 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.Collaborations)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
+
+        // ── EventRegistration ─────────────────────────────────────────────────
+        // Unique per user+event — prevents duplicate registrations
+        modelBuilder.Entity<EventRegistration>()
+            .HasIndex(er => new { er.UserId, er.EventId })
+            .IsUnique();
     }
 }

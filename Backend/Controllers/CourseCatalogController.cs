@@ -66,7 +66,6 @@ public class CourseCatalogController : ProjectBaseController
     }
 
     // ─── GET /api/courses/{id}/enrollments ────────────────────────────────────
-    // Who took this course + their projects
     [HttpGet("{id}/enrollments")]
     [AllowAnonymous]
     public async Task<IActionResult> GetEnrollments(int id)
@@ -77,7 +76,7 @@ public class CourseCatalogController : ProjectBaseController
 
         var enrollments = await _context.Courses
             .Where(c => c.CatalogId == id)
-            .Include(c => c.User)
+            .Include(c => c.User).ThenInclude(u => u.Identities)
             .Include(c => c.Projects)
             .Select(c => new
             {
@@ -85,7 +84,15 @@ public class CourseCatalogController : ProjectBaseController
                 c.Semester,
                 c.Year,
                 c.Instructor,
-                Student = new { c.User.UserId, c.User.Name, c.User.Email },
+                Student = new
+                {
+                    c.User.UserId,
+                    c.User.Name,
+                    Email = c.User.Identities
+                        .Where(i => i.IsPrimary)
+                        .Select(i => i.ProviderEmail)
+                        .FirstOrDefault()
+                },
                 Projects = c.Projects.Select(p => new
                 {
                     p.ProjectId,
@@ -122,13 +129,13 @@ public class CourseCatalogController : ProjectBaseController
 
         var course = new CourseCatalog
         {
-            CourseCode = request.CourseCode.Trim().ToUpper(),
-            CourseName = request.CourseName.Trim(),
-            Department = request.Department?.Trim(),
-            Credits = request.Credits,
-            Description = request.Description?.Trim(),
+            CourseCode      = request.CourseCode.Trim().ToUpper(),
+            CourseName      = request.CourseName.Trim(),
+            Department      = request.Department?.Trim(),
+            Credits         = request.Credits,
+            Description     = request.Description?.Trim(),
             CreatedByUserId = currentUser!.UserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt       = DateTime.UtcNow
         };
 
         _context.CourseCatalog.Add(course);
@@ -162,7 +169,6 @@ public class CourseCatalogController : ProjectBaseController
         if (string.IsNullOrWhiteSpace(request.CourseName))
             return BadRequest(new { message = "CourseName is required." });
 
-        // If changing course code, check for duplicate
         if (!string.IsNullOrWhiteSpace(request.CourseCode) &&
             request.CourseCode.Trim().ToUpper() != course.CourseCode)
         {
@@ -174,9 +180,9 @@ public class CourseCatalogController : ProjectBaseController
             course.CourseCode = request.CourseCode.Trim().ToUpper();
         }
 
-        course.CourseName = request.CourseName.Trim();
-        course.Department = request.Department?.Trim();
-        course.Credits = request.Credits;
+        course.CourseName  = request.CourseName.Trim();
+        course.Department  = request.Department?.Trim();
+        course.Credits     = request.Credits;
         course.Description = request.Description?.Trim();
 
         await _context.SaveChangesAsync();
@@ -204,7 +210,6 @@ public class CourseCatalogController : ProjectBaseController
         if (course == null)
             return NotFound(new { message = $"Course {id} not found." });
 
-        // Prevent deleting if students are enrolled
         var hasEnrollments = await _context.Courses.AnyAsync(c => c.CatalogId == id);
         if (hasEnrollments)
             return Conflict(new { message = "Cannot delete a course that has student enrollments." });

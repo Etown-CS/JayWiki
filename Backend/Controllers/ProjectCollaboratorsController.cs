@@ -23,14 +23,17 @@ public class ProjectCollaboratorsController : ProjectBaseController
 
         var collaborators = await _context.ProjectCollaborators
             .Where(pc => pc.ProjectId == projectId)
-            .Include(pc => pc.User)
+            .Include(pc => pc.User).ThenInclude(u => u.Identities)
             .Select(pc => new
             {
                 pc.ProjectCollaboratorId,
                 pc.ProjectId,
                 pc.UserId,
                 pc.User.Name,
-                pc.User.Email,
+                Email = pc.User.Identities
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ProviderEmail)
+                    .FirstOrDefault(),
                 pc.AddedAt
             })
             .ToListAsync();
@@ -53,15 +56,19 @@ public class ProjectCollaboratorsController : ProjectBaseController
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { message = "User not found." });
 
-        // Only the owner can add collaborators
         if (!await IsProjectOwnerAsync(projectId, currentUser.UserId))
             return Forbid();
 
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        if (targetUser == null)
+        // Look up target user via UserIdentity
+        var targetIdentity = await _context.UserIdentities
+            .Include(i => i.User)
+            .FirstOrDefaultAsync(i => i.ProviderEmail == request.Email);
+
+        if (targetIdentity == null)
             return NotFound(new { message = $"No user found with email '{request.Email}'." });
 
-        // Owner cannot add themselves as a collaborator
+        var targetUser = targetIdentity.User;
+
         if (targetUser.UserId == currentUser.UserId)
             return BadRequest(new { message = "You are already the project owner." });
 
@@ -73,8 +80,8 @@ public class ProjectCollaboratorsController : ProjectBaseController
         var collaborator = new ProjectCollaborator
         {
             ProjectId = projectId,
-            UserId = targetUser.UserId,
-            AddedAt = DateTime.UtcNow
+            UserId    = targetUser.UserId,
+            AddedAt   = DateTime.UtcNow
         };
 
         _context.ProjectCollaborators.Add(collaborator);
@@ -88,7 +95,7 @@ public class ProjectCollaboratorsController : ProjectBaseController
                 collaborator.ProjectId,
                 collaborator.UserId,
                 targetUser.Name,
-                targetUser.Email,
+                Email = request.Email,
                 collaborator.AddedAt
             });
     }
@@ -105,7 +112,6 @@ public class ProjectCollaboratorsController : ProjectBaseController
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { message = "User not found." });
 
-        // Only the owner can remove collaborators
         if (!await IsProjectOwnerAsync(projectId, currentUser.UserId))
             return Forbid();
 

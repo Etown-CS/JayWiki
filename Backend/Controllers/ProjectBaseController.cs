@@ -15,16 +15,22 @@ public abstract class ProjectBaseController : ControllerBase
         _context = context;
     }
 
-    // Gets the current user's DB record from their token claims
+    // Helper method to get the current user based on the JWT claims and linked identities
     protected async Task<Models.User?> GetCurrentUserAsync()
     {
         var email = User.FindFirstValue(ClaimTypes.Email)
-                 ?? User.FindFirstValue("preferred_username")
-                 ?? User.FindFirstValue("upn");
+                ?? User.FindFirstValue("preferred_username")
+                ?? User.FindFirstValue("upn")
+                ?? User.FindFirstValue("email");
 
         if (string.IsNullOrEmpty(email)) return null;
 
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        // Look up via identity table — works for all three providers
+        var identity = await _context.UserIdentities
+            .Include(i => i.User)
+            .FirstOrDefaultAsync(i => i.ProviderEmail == email);
+
+        return identity?.User;
     }
 
     // Checks if the current user is the project owner OR a collaborator

@@ -1,15 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using Backend.Data;
+using Backend.Models;
 using Backend.Services;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
+using System.Text;
 
 // ── Load .env BEFORE building the host ───────────────────────────────────────
-// Probe both cwd/.env and cwd/../.env so the app finds the repo-root .env
-// regardless of whether it is started from Backend/ or the repo root.
 var cwd = Directory.GetCurrentDirectory();
 var envCandidates = new[]
 {
@@ -27,7 +27,7 @@ foreach (var envPath in envCandidates)
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Helper: fail fast on missing or placeholder config ───────────────────────
+// ── Helper: fail fast on missing or placeholder config ────────────────────────
 static string GetRequiredConfig(WebApplicationBuilder b, string key)
 {
     var value = b.Configuration[key];
@@ -54,9 +54,19 @@ if (!string.IsNullOrWhiteSpace(blobConnectionString))
 
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 
-// ── Authentication — dual JWT Bearer (Google + Microsoft) ─────────────────────
+// ── Authentication — dual JWT Bearer (Google + Microsoft + Local) ─────────────
 var googleClientId    = GetRequiredConfig(builder, "Authentication:Google:ClientId");
 var microsoftClientId = GetRequiredConfig(builder, "Authentication:Microsoft:ClientId");
+var localSigningKey   = Environment.GetEnvironmentVariable("JWT_SIGNING_KEY")
+                        ?? GetRequiredConfig(builder, "Authentication:Local:SigningKey");
+
+// Register JwtSigningConfig so AuthController can inject it
+builder.Services.AddSingleton(new JwtSigningConfig
+{
+    SigningKey = localSigningKey,
+    Issuer     = "jaywiki-api",
+    Audience   = "jaywiki-app"
+});
 
 builder.Services
     .AddAuthentication(options =>
@@ -68,8 +78,7 @@ builder.Services
     {
         options.ForwardDefaultSelector = context =>
         {
-            var authHeader = context.Request.Headers[HeaderNames.Authorization]
-                                            .ToString();
+            var authHeader = context.Request.Headers[HeaderNames.Authorization].ToString();
             if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 var token = authHeader["Bearer ".Length..].Trim();
@@ -88,6 +97,9 @@ builder.Services
                         if (issuer.Contains("login.microsoftonline.com",
                                 StringComparison.OrdinalIgnoreCase))
                             return "Microsoft";
+
+                        if (issuer == "jaywiki-api")
+                            return "Local";
                     }
                     catch
                     {
@@ -112,20 +124,29 @@ builder.Services
     })
     .AddJwtBearer("Microsoft", options =>
     {
-        // Use "common" endpoint to support both organizational AND personal Microsoft accounts
-        options.Authority = "https://login.microsoftonline.com/common/v2.0";
+        options.Authority       = "https://login.microsoftonline.com/common/v2.0";
         options.MetadataAddress = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration";
-        
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Disable issuer validation because tokens from "common" endpoint
-            // will have different issuers (organizational vs personal accounts).
-            // Security still maintained via signature + audience validation.
-            ValidateIssuer   = false,
-            ValidateAudience = true,
-            ValidAudiences   = [microsoftClientId, $"api://{microsoftClientId}"],
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,  // Signature validation ensures token is from Microsoft
+            ValidateIssuer           = false,
+            ValidateAudience         = true,
+            ValidAudiences           = [microsoftClientId, $"api://{microsoftClientId}"],
+            ValidateLifetime         = true,
+            ValidateIssuerSigningKey = true,
+        };
+    })
+    .AddJwtBearer("Local", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidIssuer              = "jaywiki-api",
+            ValidateAudience         = true,
+            ValidAudience            = "jaywiki-app",
+            ValidateLifetime         = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey         = new SymmetricSecurityKey(
+                                           Encoding.UTF8.GetBytes(localSigningKey))
         };
     });
 
@@ -135,6 +156,8 @@ builder.Services.AddAuthorization();
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>();
+
+Console.WriteLine($"✅ CORS origins loaded: {string.Join(", ", allowedOrigins)}");
 
 if (allowedOrigins is null || allowedOrigins.Length == 0)
 {
