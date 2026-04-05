@@ -16,7 +16,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Topic> Topics { get; set; } = null!;
     public DbSet<ProjectMedia> ProjectMedia { get; set; } = null!;
     public DbSet<Event> Events { get; set; } = null!;
-    public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
+
+    public DbSet<ProjectCollaborator> ProjectCollaborators { get; set; } = null!;
     public DbSet<EventMedia> EventMedia { get; set; } = null!;
     public DbSet<Award> Awards { get; set; } = null!;
 
@@ -49,5 +50,22 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(p => p.CourseId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction); // SQL Server can't handle SetNull + cascade from User
+
+        // ProjectCollaborator — many-to-many join with extra fields
+        // Unique constraint to prevent duplicate collaborations
+        modelBuilder.Entity<ProjectCollaborator>(entity =>
+        {
+            entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
+
+            entity.HasOne(e => e.Project)
+                .WithMany(p => p.Collaborators)
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
