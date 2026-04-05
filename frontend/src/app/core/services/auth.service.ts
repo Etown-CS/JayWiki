@@ -1,17 +1,13 @@
 import { Injectable } from '@angular/core';
 import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { firstValueFrom } from 'rxjs';
 
 const googleConfig: AuthConfig = {
   issuer: 'https://accounts.google.com',
   clientId: environment.google.clientId,
-  // NOTE: This library requires dummyClientSecret for Web Application OAuth clients.
-  // While this value is exposed in the client bundle, Google's OAuth security relies on:
-  // - Redirect URI validation (prevents domain hijacking)
-  // - PKCE (prevents authorization code interception)
-  // - Backend token validation (verifies all tokens independently)
-  // For production apps, consider migrating to @abacritt/angularx-social-login
   dummyClientSecret: environment.google.clientSecret,
   redirectUri: window.location.origin + '/index.html',
   scope: 'openid profile email',
@@ -19,7 +15,6 @@ const googleConfig: AuthConfig = {
   strictDiscoveryDocumentValidation: false,
   showDebugInformation: !environment.production,
   oidc: true,
-  // Allow HTTP only for local development
   requireHttps: environment.production,
 };
 
@@ -33,7 +28,6 @@ const microsoftConfig: AuthConfig = {
   showDebugInformation: !environment.production,
   useSilentRefresh: false,
   sessionChecksEnabled: false,
-  // Allow HTTP only for local development
   requireHttps: environment.production,
   skipIssuerCheck: true,
 };
@@ -43,6 +37,7 @@ export class AuthService {
   constructor(
     private oauthService: OAuthService,
     private router: Router,
+    private http: HttpClient,
   ) {}
 
   private log(message: string, ...args: any[]): void {
@@ -52,18 +47,43 @@ export class AuthService {
   }
 
   private clearAuthStorage(): void {
-    // Clear only auth-related keys, not all sessionStorage
     sessionStorage.removeItem('auth_provider');
     localStorage.removeItem('access_token');
     localStorage.removeItem('id_token');
     localStorage.removeItem('nonce');
     localStorage.removeItem('PKCE_verifier');
+    localStorage.removeItem('local_token');
+    localStorage.removeItem('local_user_name');
+  }
+
+  // Calls POST /api/users/me to upsert the user in the database after login.
+  // Uses the ID token for Google, access token for Microsoft.
+  private async upsertUser(): Promise<void> {
+    const provider = sessionStorage.getItem('auth_provider');
+    const token = provider === 'microsoft'
+      ? this.oauthService.getAccessToken()
+      : this.oauthService.getIdToken();
+
+    if (!token) {
+      this.log('upsertUser: no token available, skipping');
+      return;
+    }
+
+    try {
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const result = await firstValueFrom(
+        this.http.post(`${environment.apiBaseUrl}/api/users/me`, {}, { headers })
+      );
+      this.log('upsertUser success:', result);
+    } catch (err) {
+      // Log but don't block navigation — user can still use the app
+      this.log('upsertUser failed:', err);
+    }
   }
 
   async loginWithGoogle(): Promise<void> {
     this.log('Starting Google login...');
     this.clearAuthStorage();
-    
     sessionStorage.setItem('auth_provider', 'google');
     this.oauthService.configure(googleConfig);
     await this.oauthService.loadDiscoveryDocumentAndLogin();
@@ -72,7 +92,6 @@ export class AuthService {
   async loginWithMicrosoft(): Promise<void> {
     this.log('Starting Microsoft login...');
     this.clearAuthStorage();
-    
     sessionStorage.setItem('auth_provider', 'microsoft');
     this.oauthService.configure(microsoftConfig);
     await this.oauthService.loadDiscoveryDocumentAndLogin();
@@ -81,28 +100,30 @@ export class AuthService {
   async tryRestoreSession(): Promise<void> {
     const lastProvider = sessionStorage.getItem('auth_provider');
     this.log('tryRestoreSession called, provider:', lastProvider);
-    
+
     if (!lastProvider) {
       this.log('No provider found, skipping restore');
       return;
     }
-    
+
     const config = lastProvider === 'microsoft' ? microsoftConfig : googleConfig;
     this.oauthService.configure(config);
-    
+
     this.log('Loading discovery document...');
     await this.oauthService.loadDiscoveryDocument();
-    
+
     this.log('Attempting code flow...');
     await this.oauthService.tryLoginCodeFlow();
-    
+
     this.log('Code flow complete. Checking login status...');
     this.log('hasValidIdToken:', this.oauthService.hasValidIdToken());
     this.log('hasValidAccessToken:', this.oauthService.hasValidAccessToken());
     this.log('isLoggedIn:', this.isLoggedIn);
-    
+
     if (this.isLoggedIn) {
-      this.log('Login successful! Navigating to dashboard...');
+      this.log('Login successful! Upserting user...');
+      await this.upsertUser();  // ← upsert before navigating
+      this.log('Navigating to dashboard...');
       this.router.navigate(['/dashboard']);
     } else {
       this.log('Login failed - tokens not valid');
@@ -119,6 +140,9 @@ export class AuthService {
 
   get isLoggedIn(): boolean {
     const provider = sessionStorage.getItem('auth_provider');
+    if (provider === 'local') {
+      return !!localStorage.getItem('local_token');
+    }
     if (provider === 'microsoft') {
       return this.oauthService.hasValidIdToken() && this.oauthService.hasValidAccessToken();
     }
@@ -129,11 +153,21 @@ export class AuthService {
     return this.oauthService.getIdToken();
   }
 
+  get accessToken(): string {
+    return this.oauthService.getAccessToken();
+  }
+
   get claims(): Record<string, unknown> {
     return this.oauthService.getIdentityClaims() as Record<string, unknown>;
   }
 
   get userName(): string {
+    const provider = sessionStorage.getItem('auth_provider');
+
+    if (provider === 'local') {
+      return localStorage.getItem('local_user_name') ?? 'User';
+    }
+
     const claims = this.claims;
     return (claims?.['name'] as string) ?? (claims?.['email'] as string) ?? 'User';
   }

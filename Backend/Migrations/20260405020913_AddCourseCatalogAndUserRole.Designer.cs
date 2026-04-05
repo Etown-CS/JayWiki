@@ -4,6 +4,7 @@ using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405020913_AddCourseCatalogAndUserRole")]
+    partial class AddCourseCatalogAndUserRole
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -201,7 +204,7 @@ namespace Backend.Migrations
                     b.HasIndex("UserId", "EventId")
                         .IsUnique();
 
-                    b.ToTable("EventRegistrations");
+                    b.ToTable("EventRegistration");
                 });
 
             modelBuilder.Entity("Backend.Models.Job", b =>
@@ -404,8 +407,16 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
+                    b.Property<string>("AuthProvider")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -425,45 +436,10 @@ namespace Backend.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Backend.Models.UserIdentity", b =>
-                {
-                    b.Property<int>("IdentityId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdentityId"));
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("LinkedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProviderEmail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("IdentityId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("Provider", "ProviderEmail")
+                    b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("UserIdentities");
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Backend.Models.Award", b =>
@@ -575,9 +551,9 @@ namespace Backend.Migrations
                         .IsRequired();
 
                     b.HasOne("Backend.Models.User", "User")
-                        .WithMany("Collaborations")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
@@ -618,17 +594,6 @@ namespace Backend.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("Backend.Models.UserIdentity", b =>
-                {
-                    b.HasOne("Backend.Models.User", "User")
-                        .WithMany("Identities")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Backend.Models.Course", b =>
                 {
                     b.Navigation("Projects");
@@ -659,13 +624,9 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
-                    b.Navigation("Collaborations");
-
                     b.Navigation("Courses");
 
                     b.Navigation("EventRegistrations");
-
-                    b.Navigation("Identities");
 
                     b.Navigation("Jobs");
 

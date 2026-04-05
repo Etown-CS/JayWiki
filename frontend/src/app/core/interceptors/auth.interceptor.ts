@@ -7,28 +7,28 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const oauthService = inject(OAuthService);
   const isApiRequest = req.url.startsWith(environment.apiBaseUrl);
 
-  if (isApiRequest) {
-    const identityClaims = oauthService.getIdentityClaims() as Record<string, unknown> | null;
-    const issuer = (identityClaims?.['iss'] as string) ?? '';
-    const accessToken = oauthService.getAccessToken();
-    const idToken = oauthService.getIdToken();
+  if (!isApiRequest) return next(req);
 
-    let token: string | null = null;
-    if (issuer.includes('accounts.google.com')) {
-        // Google: backend validates against ID token audience (clientId).
-        // Google access tokens are opaque and will fail backend JWT validation.
-        token = idToken || accessToken;
-    } else {
-        // Microsoft: must use access token scoped to API audience.
-        // Do NOT fall back to ID token — it will fail audience validation.
-        token = accessToken;
-    }
+  const provider = sessionStorage.getItem('auth_provider');
+  let token: string | null = null;
 
-    if (token) {
-      return next(req.clone({
-        setHeaders: { Authorization: `Bearer ${token}` },
-      }));
-    }
+  if (provider === 'local') {
+    // Local email/password — token stored directly in localStorage by AuthService
+    token = localStorage.getItem('local_token');
+  } else if (provider === 'google') {
+    // Google: backend validates ID token against clientId audience
+    // Access tokens are opaque and will fail backend JWT validation
+    token = oauthService.getIdToken() || oauthService.getAccessToken();
+  } else if (provider === 'microsoft') {
+    // Microsoft: must use access token scoped to API audience
+    // Do NOT fall back to ID token — it will fail audience validation
+    token = oauthService.getAccessToken();
+  }
+
+  if (token) {
+    return next(req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` },
+    }));
   }
 
   return next(req);

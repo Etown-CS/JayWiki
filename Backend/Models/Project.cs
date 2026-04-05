@@ -21,4 +21,6 @@ public class Project
     public Course? Course { get; set; } = null!;
     public ICollection<Topic> Topics { get; set; } = new List<Topic>();
     public ICollection<ProjectMedia> ProjectMedia { get; set; } = new List<ProjectMedia>();
+
+    public ICollection<ProjectCollaborator> Collaborators { get; set; } = new List<ProjectCollaborator>();
 }
