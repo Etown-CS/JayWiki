@@ -115,9 +115,16 @@
               <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] px-6 py-[22px]">
                 <div class="flex justify-between items-center mb-[18px]">
                   <span class="text-[15px] font-semibold">Academic Projects</span>
-                  <span class="text-[12px] text-[#7A9BBF] bg-white/5 rounded-full px-2.5 py-[2px]">
-                    {{ projects.length }} project{{ projects.length !== 1 ? 's' : '' }}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[12px] text-[#7A9BBF] bg-white/5 rounded-full px-2.5 py-[2px]">
+                      {{ projects.length }} project{{ projects.length !== 1 ? 's' : '' }}
+                    </span>
+                    <button *ngIf="isOwnProfile"
+                            (click)="router.navigate(['/dashboard/projects'])"
+                            class="text-[12px] px-3 py-[4px] rounded-lg border border-[#4A90C4]/30 text-[#4A90C4] hover:bg-[#4A90C4]/10 transition-colors cursor-pointer bg-transparent">
+                      + Manage
+                    </button>
+                  </div>
                 </div>
 
                 <div *ngIf="projects.length === 0" class="py-8 text-center text-[13px] text-[#7A9BBF]/60 italic">
