@@ -1,59 +1,15 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
+import { User, Job, Social, Project } from '../../core/models/models';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { NavComponent } from '../../core/nav/nav';
-
-// ── Models ────────────────────────────────────────────────────────────────────
-
-export interface User {
-  userId: number;
-  name: string;
-  role: string;
-  profileImageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  primaryEmail?: string;
-}
-
-export interface Job {
-  jobId: number;
-  userId: number;
-  company: string;
-  title: string;
-  startDate: string;
-  endDate?: string;
-  description?: string;
-}
-
-export interface Social {
-  socialId: number;
-  userId: number;
-  platform: string;
-  url: string;
-  username?: string;
-  verified: boolean;
-}
-
-export interface Project {
-  projectId: number;
-  userId: number;
-  title: string;
-  description?: string;
-  projectType: string;
-  status: string;
-  startDate?: string;
-  endDate?: string;
-  githubUrl?: string;
-  demoUrl?: string;
-  course?: { courseCode: string; courseName: string; semester: string; year: number } | null;
-  topics?: { topicId: number; name: string }[];
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -89,6 +45,7 @@ export class Dashboard implements OnInit {
 
   constructor(
     public authService: AuthService,
+    private api: ApiService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
@@ -105,19 +62,6 @@ export class Dashboard implements OnInit {
 
   // ── Data loading ────────────────────────────────────────────────────────────
 
-  private authHeaders(): HttpHeaders {
-    const provider = sessionStorage.getItem('auth_provider');
-    let token: string | null = null;
-    if (provider === 'local') {
-      token = localStorage.getItem('local_token');
-    } else if (provider === 'microsoft') {
-      token = this.authService.accessToken;
-    } else {
-      token = this.authService.idToken || this.authService.accessToken;
-    }
-    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
-  }
-
   async loadProfile(userId: number | null): Promise<void> {
     this.loading = true;
     this.error = '';
@@ -126,7 +70,7 @@ export class Dashboard implements OnInit {
 
       if (this.isOwnProfile) {
         // Authenticated: fetch current user via /me
-        const headers = this.authHeaders();
+        const headers = this.api.authHeaders();
         this.user = await firstValueFrom(
           this.http.get<User>(`${environment.apiBaseUrl}/api/users/me`, { headers })
         );
@@ -140,7 +84,7 @@ export class Dashboard implements OnInit {
       }
 
       // Supporting data — all public endpoints; auth headers only on own profile
-      const headers = this.isOwnProfile ? this.authHeaders() : new HttpHeaders();
+      const headers = this.isOwnProfile ? this.api.authHeaders() : undefined;
 
       const results = await firstValueFrom(
         forkJoin({
@@ -257,14 +201,14 @@ export class Dashboard implements OnInit {
     this.editSaving = true;
     this.editError = '';
     try {
-      const headers = this.authHeaders();
+      const headers = this.api.authHeaders();
 
       if (this.selectedFile) {
         const form = new FormData();
         form.append('file', this.selectedFile);
-        const uploadHeaders = new HttpHeaders({
-          Authorization: headers.get('Authorization') ?? '',
-        });
+        // For multipart uploads, omit Content-Type so the browser sets the boundary.
+        // Only forward the Authorization header from authHeaders().
+        const uploadHeaders = headers;
         await firstValueFrom(
           this.http.post<{ profileImageUrl: string }>(
             `${environment.apiBaseUrl}/api/users/me/profile-image`,

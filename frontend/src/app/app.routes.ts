@@ -43,10 +43,12 @@ export const routes: Routes = [
 
   // ── Students (public) ────────────────────────────────────────────────────────
   {
+    // Student directory — reuses Gallery until a dedicated page is built
     path: 'students',
-    loadComponent: () => import('./features/students/students').then(m => m.Students),
+    loadComponent: () => import('./features/gallery/gallery').then(m => m.Gallery),
   },
   {
+    // Public student profile — reuses Dashboard (isOwnProfile = false when :id param present)
     path: 'students/:id',
     loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard),
   },
@@ -68,9 +70,9 @@ export const routes: Routes = [
     loadComponent: () => import('./features/courses/courses').then(m => m.Courses),
   },
   {
-    // E detail — Catalog entry + all enrollments
+    // Catalog entry detail — Courses component reads :id param and auto-selects the entry
     path: 'courses/:id',
-    loadComponent: () => import('./features/courses/course-catalog-detail').then(m => m.CourseCatalogDetail),
+    loadComponent: () => import('./features/courses/courses').then(m => m.Courses),
   },
 
   // ── Redirects ────────────────────────────────────────────────────────────────
