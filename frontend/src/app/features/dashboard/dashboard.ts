@@ -187,6 +187,23 @@ export class Dashboard implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+
+    // File type validation
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      this.editError = 'Only JPEG, PNG, GIF, and WEBP images are allowed.';
+      input.value = '';
+      return;
+    }
+
+    // File size validation (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      this.editError = 'Image must be under 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    this.editError = '';
     this.selectedFile = file;
     const reader = new FileReader();
     reader.onload = e => this.previewUrl = e.target?.result as string;
@@ -198,30 +215,29 @@ export class Dashboard implements OnInit {
       this.editError = 'Name cannot be empty.';
       return;
     }
-    this.editSaving = true;
+    setTimeout(() => { this.editSaving = true; });
     this.editError = '';
     try {
       const headers = this.api.authHeaders();
+      let newImageUrl = this.user?.profileImageUrl ?? null;
 
       if (this.selectedFile) {
         const form = new FormData();
         form.append('file', this.selectedFile);
-        // For multipart uploads, omit Content-Type so the browser sets the boundary.
-        // Only forward the Authorization header from authHeaders().
-        const uploadHeaders = headers;
-        await firstValueFrom(
+        const uploadResult = await firstValueFrom(
           this.http.post<{ profileImageUrl: string }>(
             `${environment.apiBaseUrl}/api/users/me/profile-image`,
             form,
-            { headers: uploadHeaders }
+            { headers }
           )
         );
+        newImageUrl = uploadResult.profileImageUrl;
       }
 
       this.user = await firstValueFrom(
         this.http.put<User>(
           `${environment.apiBaseUrl}/api/users/me`,
-          { name: this.editName.trim(), profileImageUrl: this.user?.profileImageUrl },
+          { name: this.editName.trim(), profileImageUrl: newImageUrl },
           { headers }
         )
       );

@@ -265,7 +265,10 @@
             Change photo
           </label>
           <p class="text-[11px] text-[#7A9BBF]">JPEG, PNG, GIF, WEBP · max 5 MB</p>
-          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" (change)="onFileSelected($event)" />
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                class="hidden"
+                (click)="editError = ''"
+                (change)="onFileSelected($event)" />
         </div>
       </div>
 
