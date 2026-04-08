@@ -1,0 +1,84 @@
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#162338] border-b border-white/[0.07] flex items-center px-10 gap-8 z-[100] font-dm-sans">
+
+  <!-- Logo -->
+  <a routerLink="/" class="font-playfair text-[20px] font-black text-white no-underline shrink-0">
+    Jay<span class="text-[#4A90C4]">Wiki</span>
+  </a>
+
+  <!-- Nav links -->
+  <div class="flex gap-1 flex-1 ml-6">
+    <a
+      routerLink="/gallery"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Projects
+    </a>
+    <a
+      routerLink="/students"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Students
+    </a>
+    <a
+      routerLink="/courses"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Courses
+    </a>
+    <a
+      routerLink="/awards"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Awards
+    </a>
+    <a
+      routerLink="/explore"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Explore
+    </a>
+
+    <!-- Dashboard link — only visible when logged in, highlights when on any /dashboard route -->
+    <a
+      *ngIf="authService.isLoggedIn"
+      routerLink="/dashboard"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      My Portfolio
+    </a>
+  </div>
+
+  <!-- Right side — auth-aware -->
+  <div class="flex items-center gap-3 ml-auto shrink-0">
+
+    <!-- Logged OUT -->
+    <ng-container *ngIf="!authService.isLoggedIn">
+      <button
+        routerLink="/login"
+        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
+        Sign In
+      </button>
+      <button
+        routerLink="/login"
+        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-[#C8102E] text-white hover:bg-[#E8192F] transition-colors cursor-pointer border-none">
+        Get Started →
+      </button>
+    </ng-container>
+
+    <!-- Logged IN -->
+    <ng-container *ngIf="authService.isLoggedIn">
+      <button
+        (click)="logout()"
+        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
+        Sign Out
+      </button>
+    </ng-container>
+  </div>
+
+</nav>
+
+<!-- Spacer so page content clears the fixed nav -->
+<div class="h-14"></div>

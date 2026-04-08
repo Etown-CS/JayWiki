@@ -1,33 +1,10 @@
 <div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
 
-  <!-- ══ TOP NAV ═══════════════════════════════════════════════════════════════ -->
-  <nav class="fixed top-0 left-0 right-0 h-14 bg-[#162338] border-b border-white/[0.07] flex items-center px-10 gap-8 z-[100]">
-    <div class="font-playfair text-[20px] font-black text-white">
-      Jay<span class="text-[#4A90C4]">Wiki</span>
-    </div>
-    <div class="flex gap-1 flex-1 ml-6">
-      <span class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors">Projects</span>
-      <span class="text-[13px] text-white bg-[#4A90C4]/10 font-medium px-3.5 py-1.5 rounded-md cursor-pointer">Students</span>
-      <span class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors">Courses</span>
-      <span class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors">Awards</span>
-      <span class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors">Explore</span>
-    </div>
-    <div class="flex items-center gap-3 ml-auto">
-      <button
-        (click)="openEdit()"
-        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
-        Edit Profile
-      </button>
-      <button
-        (click)="authService.logout()"
-        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-[#C8102E] text-white hover:bg-[#E8192F] transition-colors cursor-pointer border-none">
-        Sign Out
-      </button>
-    </div>
-  </nav>
+  <!-- Shared nav -->
+  <app-nav></app-nav>
 
   <!-- ══ MAIN CONTENT ══════════════════════════════════════════════════════════ -->
-  <div class="pt-14">
+  <div class="bg-[#0D1B2E]">
     <div class="max-w-[1300px] mx-auto px-10 py-9">
 
       <!-- Loading -->
@@ -53,7 +30,7 @@
         <div class="bg-[#162338] border border-white/[0.07] rounded-2xl px-9 py-8 mb-6 flex items-start gap-7">
 
           <!-- Avatar -->
-          <div class="shrink-0 relative">
+          <div class="shrink-0">
             <img
               *ngIf="user.profileImageUrl"
               [src]="user.profileImageUrl"
@@ -75,7 +52,7 @@
               <span *ngIf="user.primaryEmail"> · {{ user.primaryEmail }}</span>
             </div>
 
-            <!-- Role tag -->
+            <!-- Role tags -->
             <div class="flex gap-2 flex-wrap mb-4">
               <span class="text-[11px] px-2.5 py-[3px] rounded-full font-medium bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
                 {{ user.role | titlecase }}
@@ -102,8 +79,15 @@
             <div *ngIf="socials.length === 0" class="text-[12px] text-[#7A9BBF]/50 italic">No social links added yet.</div>
           </div>
 
-          <!-- Stats pills -->
-          <div class="shrink-0 flex gap-2.5">
+          <!-- Stats pills + edit button -->
+          <div class="shrink-0 flex flex-col items-end gap-3">
+            <button
+              *ngIf="isOwnProfile"
+              (click)="openEdit()"
+              class="px-4 py-1.5 rounded-lg text-[12px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
+              Edit Profile
+            </button>
+            <div class="flex gap-2.5">
             <div class="text-center bg-white/[0.03] border border-white/[0.07] rounded-[10px] px-5 py-2.5 min-w-[70px]">
               <div class="font-playfair text-[22px] font-bold">{{ projects.length }}</div>
               <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Projects</div>
@@ -116,6 +100,7 @@
               <div class="font-playfair text-[22px] font-bold">{{ socials.length }}</div>
               <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Socials</div>
             </div>
+          </div>
           </div>
         </div>
 
@@ -135,22 +120,16 @@
                   </span>
                 </div>
 
-                <!-- Empty state -->
                 <div *ngIf="projects.length === 0" class="py-8 text-center text-[13px] text-[#7A9BBF]/60 italic">
                   No projects yet.
                 </div>
 
-                <!-- Project rows -->
                 <div
                   *ngFor="let p of projects; let last = last"
                   [class]="'flex items-start gap-3.5 py-3.5 ' + (last ? '' : 'border-b border-white/[0.07]')">
-
-                  <!-- Icon -->
                   <div class="w-10 h-10 rounded-[10px] bg-[#4A90C4]/10 flex items-center justify-center text-[18px] shrink-0">
                     {{ p.projectType === 'research' ? '🔬' : p.projectType === 'club' ? '🎯' : p.projectType === 'personal' ? '💡' : '🌐' }}
                   </div>
-
-                  <!-- Info -->
                   <div class="flex-1 min-w-0">
                     <div class="text-[14px] font-semibold mb-[3px] truncate">{{ p.title }}</div>
                     <div class="text-[12px] text-[#7A9BBF] mb-1.5" *ngIf="p.course">
@@ -164,8 +143,6 @@
                       </span>
                     </div>
                   </div>
-
-                  <!-- Status + date -->
                   <div class="text-right shrink-0">
                     <span [class]="'text-[11px] px-2.5 py-[3px] rounded-full font-medium inline-block mb-1 ' + getStatusClass(p.status)">
                       {{ p.status | titlecase }}
@@ -210,8 +187,7 @@
 
           <!-- RIGHT SIDEBAR -->
           <div>
-
-            <!-- Technologies (derived from project topics) -->
+            <!-- Technologies -->
             <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5 mb-4">
               <div class="text-[13px] font-semibold mb-3.5">🛠 Technologies</div>
               <div *ngIf="techTopics.length === 0" class="text-[12px] text-[#7A9BBF]/60 italic">
@@ -221,15 +197,13 @@
                 <span
                   *ngFor="let t of techTopics"
                   [class]="'text-[11px] px-2.5 py-1 rounded-full border ' +
-                    (t.hot
-                      ? 'border-[#4A90C4]/30 text-[#4A90C4] bg-[#4A90C4]/7'
-                      : 'border-white/[0.07] text-[#7A9BBF]')">
+                    (t.hot ? 'border-[#4A90C4]/30 text-[#4A90C4] bg-[#4A90C4]/[0.07]' : 'border-white/[0.07] text-[#7A9BBF]')">
                   {{ t.name }}
                 </span>
               </div>
             </div>
 
-            <!-- Member since -->
+            <!-- Account Info -->
             <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5 mb-4">
               <div class="text-[13px] font-semibold mb-3.5">📋 Account Info</div>
               <div class="flex flex-col gap-2.5">
@@ -247,16 +221,15 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </ng-container>
     </div>
   </div>
 
-  <!-- ══ EDIT PROFILE MODAL ════════════════════════════════════════════════════ -->
+  <!-- ══ EDIT PROFILE MODAL (own profile only) ═════════════════════════════════ -->
   <div
-    *ngIf="isEditMode"
+    *ngIf="isOwnProfile && isEditMode"
     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center px-4">
     <div class="bg-[#162338] border border-white/10 rounded-2xl w-full max-w-[460px] p-8 shadow-2xl">
 
@@ -267,7 +240,7 @@
 
       <!-- Avatar preview -->
       <div class="flex items-center gap-5 mb-6">
-        <div class="relative">
+        <div>
           <img
             *ngIf="previewUrl || user?.profileImageUrl"
             [src]="previewUrl || user?.profileImageUrl"
@@ -281,22 +254,15 @@
           </div>
         </div>
         <div>
-          <label
-            for="fileInput"
-            class="block text-[13px] font-medium text-[#4A90C4] cursor-pointer hover:underline mb-1">
+          <label for="fileInput" class="block text-[13px] font-medium text-[#4A90C4] cursor-pointer hover:underline mb-1">
             Change photo
           </label>
           <p class="text-[11px] text-[#7A9BBF]">JPEG, PNG, GIF, WEBP · max 5 MB</p>
-          <input
-            id="fileInput"
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            class="hidden"
-            (change)="onFileSelected($event)" />
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" (change)="onFileSelected($event)" />
         </div>
       </div>
 
-      <!-- Name field -->
+      <!-- Name -->
       <div class="mb-5">
         <label class="block text-[12px] font-medium text-[#7A9BBF] uppercase tracking-[0.8px] mb-1.5">Display Name</label>
         <input
@@ -306,22 +272,15 @@
           class="w-full px-3.5 py-3 rounded-[10px] border border-white/10 bg-white/[0.04] text-white text-[14px] font-dm-sans outline-none transition-all placeholder-[#7A9BBF] focus:border-[#4A90C4]/50 focus:bg-[#4A90C4]/[0.04]" />
       </div>
 
-      <!-- Error -->
       <div *ngIf="editError" class="mb-4 px-4 py-3 rounded-[10px] text-[13px] bg-[#C8102E]/10 border border-[#C8102E]/30 text-[#f28b9b]">
         {{ editError }}
       </div>
 
-      <!-- Actions -->
       <div class="flex gap-3 mt-6">
-        <button
-          (click)="closeEdit()"
-          class="flex-1 py-[11px] rounded-[10px] text-[14px] font-medium text-[#7A9BBF] border border-white/[0.07] bg-transparent hover:text-white hover:border-white/20 transition-all cursor-pointer">
+        <button (click)="closeEdit()" class="flex-1 py-[11px] rounded-[10px] text-[14px] font-medium text-[#7A9BBF] border border-white/[0.07] bg-transparent hover:text-white hover:border-white/20 transition-all cursor-pointer">
           Cancel
         </button>
-        <button
-          (click)="saveProfile()"
-          [disabled]="editSaving"
-          class="flex-1 py-[11px] rounded-[10px] text-[14px] font-semibold text-white bg-[#C8102E] border-none hover:bg-[#E8192F] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+        <button (click)="saveProfile()" [disabled]="editSaving" class="flex-1 py-[11px] rounded-[10px] text-[14px] font-semibold text-white bg-[#C8102E] border-none hover:bg-[#E8192F] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
           {{ editSaving ? 'Saving…' : 'Save Changes' }}
         </button>
       </div>

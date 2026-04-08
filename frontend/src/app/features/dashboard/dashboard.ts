@@ -2,10 +2,12 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { NavComponent } from '../../core/nav/nav';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +60,7 @@ export interface Project {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -73,7 +75,11 @@ export class Dashboard implements OnInit {
   loading = true;
   error = '';
 
-  // Edit mode
+  // Whether this is the authenticated user viewing their own profile,
+  // or an external visitor viewing someone else's public profile.
+  isOwnProfile = false;
+
+  // Edit mode (only available on own profile)
   isEditMode = false;
   editName = '';
   editSaving = false;
@@ -85,10 +91,16 @@ export class Dashboard implements OnInit {
     public authService: AuthService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute,
+    public router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.loadProfile();
+    // Route /dashboard → no :id param → own profile (auth required).
+    // Route /students/:id → has :id param → public profile (no auth needed).
+    const routeId = this.route.snapshot.paramMap.get('id');
+    this.isOwnProfile = routeId === null;
+    this.loadProfile(routeId ? +routeId : null);
   }
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -106,27 +118,41 @@ export class Dashboard implements OnInit {
     return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
   }
 
-  async loadProfile(): Promise<void> {
+  async loadProfile(userId: number | null): Promise<void> {
     this.loading = true;
     this.error = '';
     try {
-      const headers = this.authHeaders();
-      this.user = await firstValueFrom(
-        this.http.get<User>(`${environment.apiBaseUrl}/api/users/me`, { headers })
-      );
+      let resolvedUserId: number;
 
-      // forkJoin stays inside Angular's zone — catchError returns empty array on 404/error
+      if (this.isOwnProfile) {
+        // Authenticated: fetch current user via /me
+        const headers = this.authHeaders();
+        this.user = await firstValueFrom(
+          this.http.get<User>(`${environment.apiBaseUrl}/api/users/me`, { headers })
+        );
+        resolvedUserId = this.user.userId;
+      } else {
+        // Public: fetch user by ID — public endpoint, no auth needed
+        this.user = await firstValueFrom(
+          this.http.get<User>(`${environment.apiBaseUrl}/api/users/${userId}`)
+        );
+        resolvedUserId = this.user.userId;
+      }
+
+      // Supporting data — all public endpoints; auth headers only on own profile
+      const headers = this.isOwnProfile ? this.authHeaders() : new HttpHeaders();
+
       const results = await firstValueFrom(
         forkJoin({
-          jobs:     this.http.get<Job[]>    (`${environment.apiBaseUrl}/api/users/${this.user.userId}/jobs`,     { headers }).pipe(catchError(() => of([]))),
-          socials:  this.http.get<Social[]> (`${environment.apiBaseUrl}/api/users/${this.user.userId}/socials`,  { headers }).pipe(catchError(() => of([]))),
-          projects: this.http.get<Project[]>(`${environment.apiBaseUrl}/api/users/${this.user.userId}/projects`, { headers }).pipe(catchError(() => of([]))),
+          jobs:     this.http.get<Job[]>    (`${environment.apiBaseUrl}/api/users/${resolvedUserId}/jobs`,     { headers }).pipe(catchError(() => of([]))),
+          socials:  this.http.get<Social[]> (`${environment.apiBaseUrl}/api/users/${resolvedUserId}/socials`,  { headers }).pipe(catchError(() => of([]))),
+          projects: this.http.get<Project[]>(`${environment.apiBaseUrl}/api/users/${resolvedUserId}/projects`, { headers }).pipe(catchError(() => of([]))),
         })
       );
       this.jobs     = results.jobs;
       this.socials  = results.socials;
       this.projects = results.projects;
-    } catch (err) {
+    } catch {
       this.error = 'Failed to load profile. Please try again.';
     } finally {
       this.loading = false;
@@ -176,7 +202,6 @@ export class Dashboard implements OnInit {
     return ['bg-[#2ECC71]', 'bg-[#4A90C4]', 'bg-[#F0C040]', 'bg-[#C8102E]'][index % 4];
   }
 
-  /** Derive a tech cloud from project topics */
   get techTopics(): { name: string; hot: boolean }[] {
     const freq = new Map<string, number>();
     for (const p of this.projects) {
@@ -190,7 +215,15 @@ export class Dashboard implements OnInit {
       .map(([name, count]) => ({ name, hot: count > 1 }));
   }
 
-  // ── Edit mode ────────────────────────────────────────────────────────────────
+  goToMyPortfolio(): void {
+    if (this.authService.isLoggedIn) {
+      this.router.navigate(['/dashboard']);
+    } else {
+      this.router.navigate(['/login']);
+    }
+  }
+
+  // ── Edit mode (own profile only) ─────────────────────────────────────────────
 
   openEdit(): void {
     this.editName  = this.user?.name ?? '';
@@ -226,7 +259,6 @@ export class Dashboard implements OnInit {
     try {
       const headers = this.authHeaders();
 
-      // Upload image first if one was selected
       if (this.selectedFile) {
         const form = new FormData();
         form.append('file', this.selectedFile);
@@ -242,7 +274,6 @@ export class Dashboard implements OnInit {
         );
       }
 
-      // Save name (and clear profileImageUrl only if explicitly blanked — we don't touch it here)
       this.user = await firstValueFrom(
         this.http.put<User>(
           `${environment.apiBaseUrl}/api/users/me`,
@@ -251,8 +282,7 @@ export class Dashboard implements OnInit {
         )
       );
 
-      // Reload so profileImageUrl reflects the new upload
-      await this.loadProfile();
+      await this.loadProfile(null);
       this.closeEdit();
     } catch {
       this.editError = 'Failed to save. Please try again.';
