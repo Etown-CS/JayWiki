@@ -1,4 +1,9 @@
-/* You can add global styles to this file, and also import other style files */
+/* Google Fonts — must be first, before any other rules */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.font-playfair { font-family: 'Playfair Display', serif; }
+.font-dm-sans  { font-family: 'DM Sans', sans-serif; }

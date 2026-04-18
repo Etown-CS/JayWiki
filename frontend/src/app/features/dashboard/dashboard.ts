@@ -215,7 +215,7 @@ export class Dashboard implements OnInit {
       this.editError = 'Name cannot be empty.';
       return;
     }
-    setTimeout(() => { this.editSaving = true; });
+    this.editSaving = true;
     this.editError = '';
     try {
       const headers = this.api.authHeaders();

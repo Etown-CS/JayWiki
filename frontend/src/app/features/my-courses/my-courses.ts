@@ -3,7 +3,7 @@
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavComponent } from '../../core/nav/nav';
 import { ApiService } from '../../core/services/api.service';
@@ -15,7 +15,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-my-courses',
   standalone: true,
-  imports: [CommonModule, NavComponent],
+  imports: [CommonModule, RouterLink, NavComponent],
   templateUrl: './my-courses.html',
 })
 export class MyCourses implements OnInit {
