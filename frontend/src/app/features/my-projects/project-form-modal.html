@@ -1,0 +1,228 @@
+<ng-container *ngIf="open">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 z-50 flex items-center justify-center px-4"
+       style="background:rgba(0,0,0,0.6); backdrop-filter:blur(4px)"
+       (click)="closed.emit()">
+
+    <!-- Panel -->
+    <div class="bg-[#162338] border border-white/[0.09] rounded-2xl w-full max-w-[620px] max-h-[90vh] overflow-y-auto relative"
+         (click)="$event.stopPropagation()">
+
+      <!-- Top accent bar -->
+      <div class="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
+           style="background:linear-gradient(90deg,#4A90C4,#C8102E)"></div>
+
+      <!-- ── HEADER ────────────────────────────────────────────────────────── -->
+      <div class="flex items-center justify-between px-7 pt-7 pb-5 border-b border-white/[0.07]">
+        <h2 class="font-playfair text-[20px] font-bold">
+          {{ isEditMode ? 'Edit Project' : 'New Project' }}
+        </h2>
+        <button (click)="closed.emit()"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-[#7A9BBF] hover:text-white hover:bg-white/5 transition-all cursor-pointer border-0 bg-transparent text-[20px] leading-none">
+          ×
+        </button>
+      </div>
+
+      <!-- ── BODY ──────────────────────────────────────────────────────────── -->
+      <div class="px-7 py-6 flex flex-col gap-6">
+
+        <!-- 1 · Core Details ─────────────────────────────────────────────── -->
+        <section>
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">Project Details</div>
+          <div class="flex flex-col gap-3">
+
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">
+                Title <span class="text-[#C8102E]">*</span>
+              </label>
+              <input type="text" [(ngModel)]="form.title"
+                     placeholder="e.g. JayWiki Campus Portfolio"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors" />
+            </div>
+
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">Description</label>
+              <textarea [(ngModel)]="form.description"
+                        placeholder="What did you build and why?" rows="3"
+                        class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors resize-none leading-relaxed"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[12px] text-[#7A9BBF] mb-1.5">Project Type</label>
+                <select [(ngModel)]="form.projectType"
+                        class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-[#1E2E45] text-white text-[13px] outline-none focus:border-[#4A90C4]/50 transition-colors cursor-pointer">
+                  <option value="academic">Academic</option>
+                  <option value="research">Research</option>
+                  <option value="club">Club</option>
+                  <option value="personal">Personal</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[12px] text-[#7A9BBF] mb-1.5">Status</label>
+                <select [(ngModel)]="form.status"
+                        class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-[#1E2E45] text-white text-[13px] outline-none focus:border-[#4A90C4]/50 transition-colors cursor-pointer">
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 · Course Association ───────────────────────────────────────── -->
+        <section>
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">Course Association</div>
+          <select [(ngModel)]="form.courseId"
+                  class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-[#1E2E45] text-white text-[13px] outline-none focus:border-[#4A90C4]/50 transition-colors cursor-pointer">
+            <option [ngValue]="null">— No course (standalone project)</option>
+            <option *ngFor="let c of courses" [ngValue]="c.courseId">
+              {{ c.courseCode }} · {{ c.courseName }} ({{ c.semester }} {{ c.year }})
+            </option>
+          </select>
+          <div *ngIf="courses.length === 0"
+               class="text-[11px] text-[#7A9BBF]/60 mt-1.5 italic">
+            No course enrollments found — enroll in a course first, or leave as standalone.
+          </div>
+        </section>
+
+        <!-- 3 · Dates ───────────────────────────────────────────────────── -->
+        <section>
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">Dates</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">Start Date</label>
+              <input type="date" [(ngModel)]="form.startDate"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none focus:border-[#4A90C4]/50 transition-colors" />
+            </div>
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">End Date</label>
+              <input type="date" [(ngModel)]="form.endDate"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none focus:border-[#4A90C4]/50 transition-colors" />
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 · External Links ──────────────────────────────────────────── -->
+        <section>
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">External Links</div>
+          <div class="flex flex-col gap-3">
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">🐙 GitHub Repository</label>
+              <input type="url" [(ngModel)]="form.githubUrl"
+                     placeholder="https://github.com/..."
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors" />
+            </div>
+            <div>
+              <label class="block text-[12px] text-[#7A9BBF] mb-1.5">🌐 Live Demo</label>
+              <input type="url" [(ngModel)]="form.demoUrl"
+                     placeholder="https://..."
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors" />
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 · Topics ──────────────────────────────────────────────────── -->
+        <section>
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">Technologies & Topics</div>
+
+          <!-- Tag display -->
+          <div class="flex flex-wrap gap-1.5 mb-2.5 min-h-[28px]">
+            <span *ngFor="let t of existingTopics; let i = index"
+                  [class]="'flex items-center gap-1.5 px-2.5 py-[4px] rounded-full text-[11px] font-medium border ' + getTopicClass(i)">
+              {{ t.name }}
+              <button (click)="existingTopicRemoved.emit(t.topicId)"
+                      class="opacity-60 hover:opacity-100 text-[13px] leading-none cursor-pointer border-0 bg-transparent text-current">×</button>
+            </span>
+            <span *ngFor="let t of pendingTopics; let i = index"
+                  [class]="'flex items-center gap-1.5 px-2.5 py-[4px] rounded-full text-[11px] font-medium border border-dashed ' + getTopicClass(existingTopics.length + i)">
+              {{ t }}
+              <button (click)="pendingTopicRemoved.emit(t)"
+                      class="opacity-60 hover:opacity-100 text-[13px] leading-none cursor-pointer border-0 bg-transparent text-current">×</button>
+            </span>
+            <span *ngIf="existingTopics.length === 0 && pendingTopics.length === 0"
+                  class="text-[12px] text-[#7A9BBF]/50 italic self-center">No topics yet</span>
+          </div>
+
+          <!-- Topic input -->
+          <div class="flex gap-2">
+            <input type="text" [(ngModel)]="topicInput"
+                   (keydown)="onTopicKeydown($event)"
+                   placeholder="e.g. Angular, Python, Machine Learning…"
+                   class="flex-1 px-3.5 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors" />
+            <button (click)="submitTopic()"
+                    class="px-4 py-2 rounded-lg text-[13px] font-medium text-[#4A90C4] border border-[#4A90C4]/30 hover:bg-[#4A90C4]/10 cursor-pointer bg-transparent transition-colors">
+              Add
+            </button>
+          </div>
+          <div class="text-[11px] text-[#7A9BBF]/50 mt-1.5">Press Enter or click Add</div>
+        </section>
+
+        <!-- 6 · Collaborators (edit only) ───────────────────────────────── -->
+        <section *ngIf="isEditMode">
+          <div class="text-[11px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold mb-3">Collaborators</div>
+
+          <div *ngIf="existingCollaborators.length > 0" class="flex flex-col gap-2 mb-3">
+            <div *ngFor="let c of existingCollaborators"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.07]">
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+                     style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+                  {{ getInitials(c.name) }}
+                </div>
+                <span class="text-[13px]">{{ c.name }}</span>
+              </div>
+              <button (click)="collaboratorRemoved.emit(c.userId)"
+                      class="text-[11px] text-[#7A9BBF] hover:text-[#f28b9b] cursor-pointer border-0 bg-transparent transition-colors">
+                Remove
+              </button>
+            </div>
+          </div>
+          <div *ngIf="existingCollaborators.length === 0"
+               class="text-[12px] text-[#7A9BBF]/50 italic mb-3">No collaborators yet</div>
+
+          <div class="flex gap-2">
+            <input type="email" [(ngModel)]="collaboratorEmail"
+                   placeholder="teammate@etown.edu"
+                   class="flex-1 px-3.5 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[13px] outline-none placeholder-[#7A9BBF]/50 focus:border-[#4A90C4]/50 transition-colors" />
+            <button (click)="submitCollaborator()" [disabled]="collaboratorAdding"
+                    class="px-4 py-2 rounded-lg text-[13px] font-medium text-[#4A90C4] border border-[#4A90C4]/30 hover:bg-[#4A90C4]/10 cursor-pointer bg-transparent transition-colors disabled:opacity-50">
+              {{ collaboratorAdding ? 'Adding…' : 'Add' }}
+            </button>
+          </div>
+          <div *ngIf="collaboratorError" class="text-[11px] text-[#f28b9b] mt-1.5">{{ collaboratorError }}</div>
+          <div class="text-[11px] text-[#7A9BBF]/50 mt-1.5">
+            Collaborators must have a registered JayWiki account
+          </div>
+        </section>
+
+        <div *ngIf="!isEditMode"
+             class="bg-[#1E2E45] border border-white/[0.05] rounded-lg px-4 py-3 text-[12px] text-[#7A9BBF]">
+          💡 Collaborators can be added after the project is created.
+        </div>
+
+        <!-- Error -->
+        <div *ngIf="saveError"
+             class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-lg px-4 py-3 text-[12px] text-[#f28b9b]">
+          {{ saveError }}
+        </div>
+
+      </div><!-- /body -->
+
+      <!-- ── FOOTER ────────────────────────────────────────────────────────── -->
+      <div class="flex items-center justify-end gap-3 px-7 py-5 border-t border-white/[0.07]">
+        <button (click)="closed.emit()"
+                class="px-5 py-2.5 rounded-xl text-[13px] font-medium text-[#7A9BBF] border border-white/[0.07] hover:text-white hover:border-white/20 cursor-pointer bg-transparent transition-all">
+          Cancel
+        </button>
+        <button (click)="saved.emit()" [disabled]="saving"
+                class="px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer border-0 transition-all hover:opacity-90 disabled:opacity-50"
+                style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+          {{ saving ? 'Saving…' : (isEditMode ? 'Save Changes' : 'Create Project') }}
+        </button>
+      </div>
+
+    </div><!-- /panel -->
+  </div><!-- /backdrop -->
+</ng-container>

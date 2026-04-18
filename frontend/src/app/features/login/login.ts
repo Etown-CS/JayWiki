@@ -12,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login.html',
+  styleUrl: './login.css',
 })
 export class Login {
   mode: 'login' | 'register' = 'login';
@@ -28,15 +29,21 @@ export class Login {
     private router: Router,
   ) {}
 
-  loginGoogle() {
+  switchMode(m: 'login' | 'register'): void {
+    this.mode = m;
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  loginGoogle(): void {
     this.authService.loginWithGoogle();
   }
 
-  loginMicrosoft() {
+  loginMicrosoft(): void {
     this.authService.loginWithMicrosoft();
   }
 
-  async loginLocal() {
+  async loginLocal(): Promise<void> {
     if (!this.email || !this.password) {
       this.errorMessage = 'Email and password are required.';
       return;
@@ -54,7 +61,6 @@ export class Login {
         })
       );
 
-      // Store token and provider so existing auth flow works
       localStorage.setItem('local_token', response.token);
       localStorage.setItem('local_user_name', response.name);
       sessionStorage.setItem('auth_provider', 'local');
@@ -69,7 +75,7 @@ export class Login {
     }
   }
 
-  async register() {
+  async register(): Promise<void> {
     if (!this.email || !this.password) {
       this.errorMessage = 'Email and password are required.';
       return;
@@ -93,7 +99,6 @@ export class Login {
         })
       );
 
-      // Auto login after register
       localStorage.setItem('local_token', response.token);
       localStorage.setItem('local_user_name', response.name);
       sessionStorage.setItem('auth_provider', 'local');
