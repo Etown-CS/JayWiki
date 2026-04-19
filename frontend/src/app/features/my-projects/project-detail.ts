@@ -1,7 +1,7 @@
 // frontend/src/app/features/my-projects/project-detail.ts
 // C — Project detail. Shared component for two routes:
 //   /dashboard/projects/:projectId  → own project (isOwnProject = true, editable)
-//   /gallery/:userId/:projectId     → public view  (isOwnProject = false, read-only)
+//   /projects/:userId/:projectId     → public view  (isOwnProject = false, read-only)
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -37,7 +37,7 @@ export class ProjectDetail implements OnInit {
 
   ngOnInit(): void {
     // /dashboard/projects/:projectId → own
-    // /gallery/:userId/:projectId   → public
+    // /projects/:userId/:projectId   → public
     const projectId = +this.route.snapshot.paramMap.get('projectId')!;
     const routeUserId = this.route.snapshot.paramMap.get('userId');
     this.isOwnProject = routeUserId === null;
@@ -113,7 +113,7 @@ export class ProjectDetail implements OnInit {
     if (this.isOwnProject) {
       this.router.navigate(['/dashboard/projects']);
     } else {
-      this.router.navigate(['/gallery']);
+      this.router.navigate(['/projects']);
     }
   }
 }

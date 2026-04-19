@@ -41,8 +41,8 @@ export const routes: Routes = [
   },
 
   // ── Public project detail — two routes both load the same component.
-  //    /projects/:projectId  — canonical route (used by Gallery, Explore).
-  //    /gallery/:userId/:projectId — legacy route kept so existing navigations
+  //    /projects/:projectId  — canonical route (used by Projects, Explore).
+  //    /projects/:userId/:projectId — legacy route kept so existing navigations
   //    from Courses and other pages that pass userId don't break. ProjectDetail
   //    uses userId when available to scope the API call, otherwise falls back
   //    to the global GET /api/projects/:projectId endpoint.
@@ -51,7 +51,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
   },
   {
-    path: 'gallery/:userId/:projectId',
+    path: 'projects/:userId/:projectId',
     loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
   },
 
@@ -75,10 +75,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/events/event-detail').then(m => m.EventDetail),
   },
 
-  // ── Gallery + Explore (public) ────────────────────────────────────────────
+  // ── Projects + Explore (public) ────────────────────────────────────────────
   {
-    path: 'gallery',
-    loadComponent: () => import('./features/gallery/gallery').then(m => m.Gallery),
+    path: 'projects',
+    loadComponent: () => import('./features/projects/projects').then(m => m.Projects),
   },
   {
     path: 'explore',
@@ -86,6 +86,6 @@ export const routes: Routes = [
   },
 
   // ── Fallback ──────────────────────────────────────────────────────────────
-  { path: '',   redirectTo: 'gallery', pathMatch: 'full' },
-  { path: '**', redirectTo: 'gallery' },
+  { path: '',   redirectTo: 'projects', pathMatch: 'full' },
+  { path: '**', redirectTo: 'projects' },
 ];

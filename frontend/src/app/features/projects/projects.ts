@@ -1,5 +1,4 @@
-// frontend/src/app/features/gallery/gallery.ts
-// F — Global project gallery (public). All projects from all students.
+// F — Global projects (public). All projects from all students.
 // TODO: Replace stub data with a dedicated backend endpoint
 //       e.g. GET /api/projects?status=&type=&page= once it exists.
 //       Current workaround would be GET /api/users then fan-out per user
@@ -23,12 +22,12 @@ export interface GalleryProject extends Project {
 }
 
 @Component({
-  selector: 'app-gallery',
+  selector: 'app-projects',
   standalone: true,
   imports: [CommonModule, NavComponent],
-  templateUrl: './gallery.html',
+  templateUrl: './projects.html',
 })
-export class Gallery implements OnInit {
+export class Projects implements OnInit {
   projects: GalleryProject[] = [];
   loading = true;
   error = '';
@@ -111,7 +110,7 @@ export class Gallery implements OnInit {
   setView(v: 'grid' | 'list'): void { this.viewMode = v; }
 
   openProject(p: GalleryProject): void {
-    this.router.navigate(['/gallery', p.studentId, p.projectId]);
+    this.router.navigate(['/projects', p.studentId, p.projectId]);
   }
 
   getProjectEmoji(p: Project): string {

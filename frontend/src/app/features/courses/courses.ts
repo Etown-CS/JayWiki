@@ -123,6 +123,6 @@ export class Courses implements OnInit {
   }
 
   openProject(userId: number, projectId: number): void {
-    this.router.navigate(['/gallery', userId, projectId]);
+    this.router.navigate(['/projects', userId, projectId]);
   }
 }
