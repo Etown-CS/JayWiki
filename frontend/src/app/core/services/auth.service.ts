@@ -3,7 +3,8 @@ import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { User } from '../models/models';
 
 const googleConfig: AuthConfig = {
   issuer: 'https://accounts.google.com',
@@ -38,6 +39,16 @@ export class AuthService {
   // only needs to run once per session after login.
   private userUpserted = false;
 
+  // ── Shared DB user state ───────────────────────────────────────────────────
+  // Populated by upsertUser() after OAuth login, and by dashboard.ts calling
+  // setCurrentUser() on load (which covers local-auth users).
+  // Nav reads profileImageUrl from here; event-detail reads userId from here.
+  private readonly _currentUser = new BehaviorSubject<User | null>(null);
+  readonly currentUser$ = this._currentUser.asObservable();
+  get currentUser(): User | null { return this._currentUser.value; }
+  setCurrentUser(user: User): void { this._currentUser.next(user); }
+  // ──────────────────────────────────────────────────────────────────────────
+
   constructor(
     private oauthService: OAuthService,
     private router: Router,
@@ -58,7 +69,8 @@ export class AuthService {
     localStorage.removeItem('PKCE_verifier');
     localStorage.removeItem('local_token');
     localStorage.removeItem('local_user_name');
-    this.userUpserted = false; // reset on logout/new login
+    this.userUpserted = false;
+    this._currentUser.next(null); // clear shared user state on logout
   }
 
   // Calls POST /api/users/me to upsert the user in the database after login.
@@ -83,9 +95,10 @@ export class AuthService {
     try {
       const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
       const result = await firstValueFrom(
-        this.http.post(`${environment.apiBaseUrl}/api/users/me`, {}, { headers })
+        this.http.post<User>(`${environment.apiBaseUrl}/api/users/me`, {}, { headers })
       );
       this.log('upsertUser success:', result);
+      this._currentUser.next(result); // populate shared user state
       this.userUpserted = true;
     } catch (err) {
       // Log but don't block navigation — user can still use the app

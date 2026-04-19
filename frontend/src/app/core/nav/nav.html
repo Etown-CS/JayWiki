@@ -1,84 +1,93 @@
-<nav class="fixed top-0 left-0 right-0 h-14 bg-[#162338] border-b border-white/[0.07] flex items-center px-10 gap-8 z-[100] font-dm-sans">
+<!-- frontend/src/app/core/nav/nav.html -->
+<nav class="bg-[#162338] border-b border-white/[0.07] sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
 
-  <!-- Logo -->
-  <a routerLink="/" class="font-playfair text-[20px] font-black text-white no-underline shrink-0">
-    Jay<span class="text-[#4A90C4]">Wiki</span>
-  </a>
+      <!-- Logo -->
+      <a routerLink="/" class="flex items-center gap-2.5">
+        <span class="font-playfair text-xl font-bold text-white tracking-tight">
+          Jay<span class="text-[#4A90C4]">Wiki</span>
+        </span>
+      </a>
 
-  <!-- Nav links -->
-  <div class="flex gap-1 flex-1 ml-6">
-    <a
-      routerLink="/gallery"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Projects
-    </a>
-    <a
-      routerLink="/courses"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Courses
-    </a>
-    <a
-      routerLink="/events"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Events
-    </a>
-    <a
-      routerLink="/awards"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Awards
-    </a>
-    <a
-      routerLink="/explore"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Explore
-    </a>
+      <!-- Primary links -->
+      <div class="hidden md:flex items-center gap-1">
+        <a routerLink="/explore"
+           routerLinkActive="bg-white/10 text-white"
+           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+          Explore
+        </a>
+        <a routerLink="/events"
+           routerLinkActive="bg-white/10 text-white"
+           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+          Events
+        </a>
+        <a routerLink="/courses"
+           routerLinkActive="bg-white/10 text-white"
+           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+          Courses
+        </a>
+        <a *ngIf="auth.isLoggedIn"
+           routerLink="/dashboard"
+           routerLinkActive="bg-white/10 text-white"
+           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+          My Portfolio
+        </a>
+      </div>
 
-    <!-- My Portfolio — only visible when logged in -->
-    <a
-      *ngIf="authService.isLoggedIn"
-      routerLink="/dashboard"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      My Portfolio
-    </a>
+      <!-- Right side: avatar or sign-in buttons -->
+      <div class="flex items-center gap-3">
+
+        <ng-container *ngIf="auth.isLoggedIn; else loggedOut">
+          <!-- Avatar — links to own dashboard -->
+          <a routerLink="/dashboard" class="flex items-center gap-2.5 group">
+
+            <ng-container *ngIf="currentUser?.profileImageUrl; else initialsAvatar">
+              <img
+                [src]="currentUser!.profileImageUrl"
+                [alt]="currentUser!.name"
+                class="w-8 h-8 rounded-full object-cover ring-2 ring-white/20
+                       group-hover:ring-[#4A90C4] transition-all"
+              />
+            </ng-container>
+
+            <ng-template #initialsAvatar>
+              <div class="w-8 h-8 rounded-full bg-[#4A90C4]/20 ring-2 ring-white/20
+                          group-hover:ring-[#4A90C4] transition-all
+                          flex items-center justify-center">
+                <span class="text-xs font-semibold text-[#4A90C4]">
+                  {{ getInitials(currentUser?.name ?? auth.userName) }}
+                </span>
+              </div>
+            </ng-template>
+
+            <span class="hidden sm:block text-sm text-white/70 group-hover:text-white transition-colors">
+              {{ currentUser?.name ?? auth.userName }}
+            </span>
+          </a>
+
+          <button
+            (click)="auth.logout()"
+            class="px-3 py-1.5 rounded-md text-sm text-white/60
+                   hover:text-white hover:bg-white/8 transition-colors">
+            Sign out
+          </button>
+        </ng-container>
+
+        <ng-template #loggedOut>
+          <a routerLink="/login"
+             class="px-3 py-1.5 rounded-md text-sm text-white/70
+                    hover:text-white hover:bg-white/8 transition-colors">
+            Sign in
+          </a>
+          <a routerLink="/login"
+             class="px-4 py-1.5 rounded-md text-sm font-medium bg-[#4A90C4] text-white
+                    hover:bg-[#5ba3d9] transition-colors">
+            Get Started
+          </a>
+        </ng-template>
+
+      </div>
+    </div>
   </div>
-
-  <!-- Right side — auth-aware -->
-  <div class="flex items-center gap-3 ml-auto shrink-0">
-
-    <!-- Logged OUT -->
-    <ng-container *ngIf="!authService.isLoggedIn">
-      <button
-        routerLink="/login"
-        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
-        Sign In
-      </button>
-      <button
-        routerLink="/login"
-        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-[#C8102E] text-white hover:bg-[#E8192F] transition-colors cursor-pointer border-none">
-        Get Started →
-      </button>
-    </ng-container>
-
-    <!-- Logged IN -->
-    <ng-container *ngIf="authService.isLoggedIn">
-      <button
-        (click)="logout()"
-        class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
-        Sign Out
-      </button>
-    </ng-container>
-  </div>
-
 </nav>
-
-<!-- Spacer so page content clears the fixed nav -->
-<div class="h-14"></div>

@@ -1,98 +1,110 @@
+// frontend/src/app/features/dashboard/dashboard.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
-import { User, Social, Project } from '../../core/models/models';
+import { User, Social, Project, CourseEnrollment, EventSummary } from '../../core/models/models';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { NavComponent } from '../../core/nav/nav';
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavComponent],
+  imports: [CommonModule, FormsModule, RouterLink, NavComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
 export class Dashboard implements OnInit {
-  // Data
-  user: User | null = null;
-  socials: Social[] = [];
-  projects: Project[] = [];
 
-  // UI state
+  // ── Data ──────────────────────────────────────────────────────────────────
+  user:     User             | null = null;
+  socials:  Social[]                = [];
+  projects: Project[]               = [];
+  courses:  CourseEnrollment[]      = [];
+  events:   EventSummary[]          = [];
+
+  // ── UI state ──────────────────────────────────────────────────────────────
   loading = true;
-  error = '';
+  error   = '';
 
-  // Whether this is the authenticated user viewing their own profile,
-  // or an external visitor viewing someone else's public profile.
+  // /dashboard       → own profile (auth-guarded)
+  // /students/:id    → public profile (no guard)
   isOwnProfile = false;
 
-  // Edit mode (only available on own profile)
-  isEditMode = false;
-  editName = '';
-  editSaving = false;
-  editError = '';
-  selectedFile: File | null = null;
-  previewUrl: string | null = null;
+  // Edit modal — own profile only
+  isEditMode   = false;
+  editName     = '';
+  editSaving   = false;
+  editError    = '';
+  selectedFile: File   | null = null;
+  previewUrl:   string | null = null;
 
   constructor(
-    public authService: AuthService,
-    private api: ApiService,
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute,
-    public router: Router,
+    public  authService: AuthService,
+    private api:         ApiService,
+    private http:        HttpClient,
+    private cdr:         ChangeDetectorRef,
+    private route:       ActivatedRoute,
+    public  router:      Router,
   ) {}
 
   ngOnInit(): void {
-    // Route /dashboard → no :id param → own profile (auth required).
-    // Route /students/:id → has :id param → public profile (no auth needed).
     const routeId = this.route.snapshot.paramMap.get('id');
     this.isOwnProfile = routeId === null;
     this.loadProfile(routeId ? +routeId : null);
   }
 
-  // ── Data loading ────────────────────────────────────────────────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   async loadProfile(userId: number | null): Promise<void> {
     this.loading = true;
-    this.error = '';
+    this.error   = '';
     try {
-      let resolvedUserId: number;
+      let resolvedId: number;
 
       if (this.isOwnProfile) {
-        // Authenticated: fetch current user via /me
         const headers = this.api.authHeaders();
-        this.user = await firstValueFrom(
+        this.user  = await firstValueFrom(
           this.http.get<User>(`${environment.apiBaseUrl}/api/users/me`, { headers })
         );
-        resolvedUserId = this.user.userId;
+        resolvedId = this.user.userId;
+
+        // Populate shared nav state.
+        // OAuth users: already set by upsertUser() after login.
+        // Local-auth users: upsertUser() never runs, so this is the only call-site.
+        this.authService.setCurrentUser(this.user);
+
       } else {
-        // Public: fetch user by ID — public endpoint, no auth needed
-        this.user = await firstValueFrom(
+        this.user  = await firstValueFrom(
           this.http.get<User>(`${environment.apiBaseUrl}/api/users/${userId}`)
         );
-        resolvedUserId = this.user.userId;
+        resolvedId = this.user.userId;
       }
 
-      // Supporting data — all public endpoints; auth headers only on own profile
       const headers = this.isOwnProfile ? this.api.authHeaders() : undefined;
+      const base    = `${environment.apiBaseUrl}/api/users/${resolvedId}`;
 
       const results = await firstValueFrom(
         forkJoin({
-          socials:  this.http.get<Social[]> (`${environment.apiBaseUrl}/api/users/${resolvedUserId}/socials`,  { headers }).pipe(catchError(() => of([]))),
-          projects: this.http.get<Project[]>(`${environment.apiBaseUrl}/api/users/${resolvedUserId}/projects`, { headers }).pipe(catchError(() => of([]))),
+          socials:  this.http.get<Social[]>         (`${base}/socials`,  { headers }).pipe(catchError(() => of([]))),
+          projects: this.http.get<Project[]>        (`${base}/projects`, { headers }).pipe(catchError(() => of([]))),
+          courses:  this.http.get<CourseEnrollment[]>(`${base}/courses`, { headers }).pipe(catchError(() => of([]))),
+          // GET /api/users/{id}/events — returns events the user is registered for.
+          // Falls back to [] silently if the endpoint hasn't been built yet.
+          events:   this.http.get<EventSummary[]>   (`${base}/events`,  { headers }).pipe(catchError(() => of([]))),
         })
       );
       this.socials  = results.socials;
       this.projects = results.projects;
+      this.courses  = results.courses;
+      this.events   = results.events;
+
     } catch {
       this.error = 'Failed to load profile. Please try again.';
     } finally {
@@ -101,7 +113,85 @@ export class Dashboard implements OnInit {
     }
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // ── Edit modal ────────────────────────────────────────────────────────────
+
+  openEdit(): void {
+    this.editName     = this.user?.name ?? '';
+    this.editError    = '';
+    this.selectedFile = null;
+    this.previewUrl   = null;
+    this.isEditMode   = true;
+  }
+
+  closeEdit(): void {
+    this.isEditMode   = false;
+    this.previewUrl   = null;
+    this.selectedFile = null;
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    this.selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => (this.previewUrl = e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async saveProfile(): Promise<void> {
+    if (!this.editName.trim()) {
+      this.editError = 'Name cannot be empty.';
+      return;
+    }
+    this.editSaving = true;
+    this.editError  = '';
+    try {
+      const headers = this.api.authHeaders();
+
+      // Upload new photo first if one was selected.
+      if (this.selectedFile) {
+        const form = new FormData();
+        form.append('file', this.selectedFile);
+        // Pass only Authorization — browser sets Content-Type + boundary for multipart.
+        const uploadResult = await firstValueFrom(
+          this.http.post<{ profileImageUrl: string }>(
+            `${environment.apiBaseUrl}/api/users/me/profile-image`,
+            form,
+            { headers }
+          )
+        );
+        if (this.user) {
+          this.user = { ...this.user, profileImageUrl: uploadResult.profileImageUrl };
+        }
+      }
+
+      // Persist updated name.
+      this.user = await firstValueFrom(
+        this.http.put<User>(
+          `${environment.apiBaseUrl}/api/users/me`,
+          { name: this.editName.trim() },
+          { headers }
+        )
+      );
+
+      // Update nav avatar immediately — before the loadProfile() reload completes.
+      if (this.user) {
+        this.authService.setCurrentUser(this.user);
+      }
+
+      await this.loadProfile(null);
+      this.closeEdit();
+
+    } catch {
+      this.editError = 'Failed to save. Please try again.';
+    } finally {
+      this.editSaving = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   getUserInitials(): string {
     if (!this.user?.name) return '?';
@@ -115,12 +205,15 @@ export class Dashboard implements OnInit {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return 'Present';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
   formatDateRange(start?: string, end?: string): string {
     return `${this.formatDate(start)} – ${this.formatDate(end)}`;
+  }
+
+  isUpcoming(dateStr: string): boolean {
+    return new Date(dateStr) > new Date();
   }
 
   getSocialIcon(platform: string): string {
@@ -139,6 +232,16 @@ export class Dashboard implements OnInit {
         : 'bg-white/5 text-[#7A9BBF]';
   }
 
+  getCategoryClass(cat: string): string {
+    const map: Record<string, string> = {
+      academic: 'bg-[#4A90C4]/15 text-[#4A90C4]',
+      club:     'bg-[#2ECC71]/15 text-[#2ECC71]',
+      sport:    'bg-[#F0C040]/15 text-[#F0C040]',
+      other:    'bg-white/10 text-white/60',
+    };
+    return map[cat] ?? map['other'];
+  }
+
   get techTopics(): { name: string; hot: boolean }[] {
     const freq = new Map<string, number>();
     for (const p of this.projects) {
@@ -153,94 +256,8 @@ export class Dashboard implements OnInit {
   }
 
   goToMyPortfolio(): void {
-    if (this.authService.isLoggedIn) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.router.navigate(['/login']);
-    }
-  }
-
-  // ── Edit mode (own profile only) ─────────────────────────────────────────────
-
-  openEdit(): void {
-    this.editName  = this.user?.name ?? '';
-    this.editError = '';
-    this.selectedFile = null;
-    this.previewUrl = null;
-    this.isEditMode = true;
-  }
-
-  closeEdit(): void {
-    this.isEditMode = false;
-    this.previewUrl = null;
-    this.selectedFile = null;
-  }
-
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    // File type validation
-    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      this.editError = 'Only JPEG, PNG, GIF, and WEBP images are allowed.';
-      input.value = '';
-      return;
-    }
-
-    // File size validation (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      this.editError = 'Image must be under 5 MB.';
-      input.value = '';
-      return;
-    }
-
-    this.editError = '';
-    this.selectedFile = file;
-    const reader = new FileReader();
-    reader.onload = e => this.previewUrl = e.target?.result as string;
-    reader.readAsDataURL(file);
-  }
-
-  async saveProfile(): Promise<void> {
-    if (!this.editName.trim()) {
-      this.editError = 'Name cannot be empty.';
-      return;
-    }
-    this.editSaving = true;
-    this.editError = '';
-    try {
-      const headers = this.api.authHeaders();
-      let newImageUrl = this.user?.profileImageUrl ?? null;
-
-      if (this.selectedFile) {
-        const form = new FormData();
-        form.append('file', this.selectedFile);
-        const uploadResult = await firstValueFrom(
-          this.http.post<{ profileImageUrl: string }>(
-            `${environment.apiBaseUrl}/api/users/me/profile-image`,
-            form,
-            { headers }
-          )
-        );
-        newImageUrl = uploadResult.profileImageUrl;
-      }
-
-      this.user = await firstValueFrom(
-        this.http.put<User>(
-          `${environment.apiBaseUrl}/api/users/me`,
-          { name: this.editName.trim(), profileImageUrl: newImageUrl },
-          { headers }
-        )
-      );
-
-      await this.loadProfile(null);
-      this.closeEdit();
-    } catch {
-      this.editError = 'Failed to save. Please try again.';
-    } finally {
-      this.editSaving = false;
-    }
+    this.authService.isLoggedIn
+      ? this.router.navigate(['/dashboard'])
+      : this.router.navigate(['/login']);
   }
 }

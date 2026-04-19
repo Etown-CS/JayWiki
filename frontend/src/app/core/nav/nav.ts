@@ -1,29 +1,39 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { User } from '../models/models';
 
 @Component({
   selector: 'app-nav',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './nav.html',
+  styleUrl: './nav.css',
 })
-export class NavComponent {
-  constructor(
-    public authService: AuthService,
-    public router: Router,
-  ) {}
+export class NavComponent implements OnInit, OnDestroy {
 
-  goToMyPortfolio(): void {
-    if (this.authService.isLoggedIn) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.router.navigate(['/login']);
-    }
+  currentUser: User | null = null;
+  private sub: Subscription | null = null;
+
+  constructor(public auth: AuthService) {}
+
+  ngOnInit(): void {
+    // Stays in sync when profile image is uploaded or name is changed.
+    this.sub = this.auth.currentUser$.subscribe(u => (this.currentUser = u));
   }
 
-  logout(): void {
-    this.authService.logout();
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  getInitials(name: string): string {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(w => w[0].toUpperCase())
+      .join('');
   }
 }
