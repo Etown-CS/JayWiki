@@ -12,7 +12,6 @@ import { AuthService } from '../../core/services/auth.service';
 import {
   EventDetail as EventDetailData,
   EventMedia,
-  Award,
   EventRegistration,
   User,
 } from '../../core/models/models';
@@ -30,17 +29,20 @@ export class EventDetail implements OnInit {
   loading = true;
   error   = '';
 
-  // ── Registration ─────────────────────────────────────────────────────────
-  isRegistered = false;
-  regLoading   = false;
-  regError     = '';
+  // ── Registration ── names match HTML bindings ─────────────────────────────
+  isRegistered    = false;
+  registerLoading = false;
+  registerError   = '';
 
-  // ── Media upload ─────────────────────────────────────────────────────────
+  // ── Media upload ── names match HTML bindings ─────────────────────────────
+  showMediaForm  = false;
   mediaType      = 'image';
-  mediaUrl       = '';
+  mediaLinkUrl   = '';
   mediaFile: File | null = null;
-  uploadingMedia = false;
+  mediaFileName  = '';
+  mediaUploading = false;
   mediaError     = '';
+  deletingMediaId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -71,14 +73,10 @@ export class EventDetail implements OnInit {
   }
 
   /**
-   * Determines whether the logged-in user is already registered for this event.
-   *
-   * auth.currentUser is set by upsertUser() after OAuth login, and by
-   * dashboard.ts calling setCurrentUser() on load (which covers local-auth users).
-   *
-   * If the user navigates directly to an event URL before visiting the dashboard,
-   * currentUser may still be null. In that case we fall back to GET /api/users/me
-   * and cache the result into shared state so other components don't re-fetch.
+   * Determines whether the logged-in user is already registered.
+   * auth.currentUser is set by upsertUser() (OAuth) or by dashboard.ts (local).
+   * If still null (direct URL visit before dashboard loads), falls back to
+   * GET /api/users/me and caches the result into shared state.
    */
   private async deriveRegistrationState(): Promise<void> {
     if (!this.auth.isLoggedIn || !this.event) return;
@@ -96,7 +94,7 @@ export class EventDetail implements OnInit {
         myId = me.userId;
         this.auth.setCurrentUser(me);
       } catch {
-        return; // not critical — button just won't reflect true initial state
+        return;
       }
     }
 
@@ -107,8 +105,8 @@ export class EventDetail implements OnInit {
 
   async toggleRegistration(): Promise<void> {
     if (!this.event || !this.auth.isLoggedIn) return;
-    this.regLoading = true;
-    this.regError   = '';
+    this.registerLoading = true;
+    this.registerError   = '';
 
     const base    = `${environment.apiBaseUrl}/api/events/${this.event.eventId}/registrations`;
     const headers = this.api.authHeaders();
@@ -128,23 +126,35 @@ export class EventDetail implements OnInit {
         this.isRegistered = true;
       }
     } catch {
-      this.regError = 'Action failed. Please try again.';
+      this.registerError = 'Action failed. Please try again.';
     } finally {
-      this.regLoading = false;
+      this.registerLoading = false;
       this.cdr.detectChanges();
     }
   }
 
   // ── Media ─────────────────────────────────────────────────────────────────
 
-  onMediaFileSelected(event: Event): void {
+  onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.mediaFile = input.files?.[0] ?? null;
+    const file  = input.files?.[0] ?? null;
+    this.mediaFile     = file;
+    this.mediaFileName = file?.name ?? '';
   }
 
-  async addMedia(): Promise<void> {
+  resetMediaForm(): void {
+    this.showMediaForm  = false;
+    this.mediaType      = 'image';
+    this.mediaFile      = null;
+    this.mediaFileName  = '';
+    this.mediaLinkUrl   = '';
+    this.mediaError     = '';
+    this.mediaUploading = false;
+  }
+
+  async submitMedia(): Promise<void> {
     if (!this.event) return;
-    this.uploadingMedia = true;
+    this.mediaUploading = true;
     this.mediaError     = '';
 
     const base    = `${environment.apiBaseUrl}/api/events/${this.event.eventId}/media`;
@@ -155,12 +165,12 @@ export class EventDetail implements OnInit {
         const created = await firstValueFrom(
           this.http.post<EventMedia>(
             base,
-            { mediaType: 'link', url: this.mediaUrl },
+            { mediaType: 'link', url: this.mediaLinkUrl },
             { headers }
           )
         );
         this.event.media = [...(this.event.media ?? []), created];
-        this.mediaUrl = '';
+        this.mediaLinkUrl = '';
       } else if (this.mediaFile) {
         const form = new FormData();
         form.append('file', this.mediaFile);
@@ -169,18 +179,19 @@ export class EventDetail implements OnInit {
           this.http.post<EventMedia>(`${base}/upload`, form, { headers })
         );
         this.event.media = [...(this.event.media ?? []), created];
-        this.mediaFile = null;
       }
+      this.resetMediaForm();
     } catch {
-      this.mediaError = 'Upload failed.';
+      this.mediaError = 'Upload failed. Please try again.';
     } finally {
-      this.uploadingMedia = false;
+      this.mediaUploading = false;
       this.cdr.detectChanges();
     }
   }
 
   async deleteMedia(mediaId: number): Promise<void> {
     if (!this.event) return;
+    this.deletingMediaId = mediaId;
     const headers = this.api.authHeaders();
     try {
       await firstValueFrom(
@@ -190,13 +201,19 @@ export class EventDetail implements OnInit {
         )
       );
       this.event.media = this.event.media.filter(m => m.eventMediaId !== mediaId);
-      this.cdr.detectChanges();
     } catch {
       this.mediaError = 'Delete failed.';
+    } finally {
+      this.deletingMediaId = null;
+      this.cdr.detectChanges();
     }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  isUpcoming(dateStr: string): boolean {
+    return new Date(dateStr) > new Date();
+  }
 
   formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -204,7 +221,14 @@ export class EventDetail implements OnInit {
     });
   }
 
-  getCategoryClass(cat: string): string {
+  /** Alias used by award list in the template. */
+  formatAwardDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+  }
+
+  getCategoryColor(cat: string): string {
     const map: Record<string, string> = {
       academic: 'bg-[#4A90C4]/15 text-[#4A90C4]',
       club:     'bg-[#2ECC71]/15 text-[#2ECC71]',
@@ -212,6 +236,16 @@ export class EventDetail implements OnInit {
       other:    'bg-white/10 text-white/60',
     };
     return map[cat] ?? map['other'];
+  }
+
+  getCategoryLabel(cat: string): string {
+    const map: Record<string, string> = {
+      academic: 'Academic',
+      club:     'Club',
+      sport:    'Sport',
+      other:    'Other',
+    };
+    return map[cat] ?? cat;
   }
 
   getInitials(name: string): string {

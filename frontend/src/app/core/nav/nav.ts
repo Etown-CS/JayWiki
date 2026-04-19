@@ -1,3 +1,4 @@
+// frontend/src/app/core/nav/nav.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -10,7 +11,6 @@ import { User } from '../models/models';
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './nav.html',
-  styleUrl: './nav.css',
 })
 export class NavComponent implements OnInit, OnDestroy {
 
@@ -20,7 +20,6 @@ export class NavComponent implements OnInit, OnDestroy {
   constructor(public auth: AuthService) {}
 
   ngOnInit(): void {
-    // Stays in sync when profile image is uploaded or name is changed.
     this.sub = this.auth.currentUser$.subscribe(u => (this.currentUser = u));
   }
 
