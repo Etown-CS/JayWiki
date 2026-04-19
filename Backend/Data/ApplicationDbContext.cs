@@ -109,5 +109,22 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<EventRegistration>()
             .HasIndex(er => new { er.UserId, er.EventId })
             .IsUnique();
+
+        // ── Award ──────────────────────────────────────────────────────────────
+        // Award → Event: optional, no cascade (event delete doesn't wipe awards)
+        modelBuilder.Entity<Award>()
+            .HasOne(a => a.Event)
+            .WithMany(e => e.Awards)
+            .HasForeignKey(a => a.EventId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Award → User: optional
+        modelBuilder.Entity<Award>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

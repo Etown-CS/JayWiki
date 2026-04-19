@@ -39,15 +39,6 @@ export interface ProjectMedia {
   url: string;
 }
 
-export interface CourseRef {
-  courseId: number;
-  courseCode: string;
-  courseName: string;
-  semester: string;
-  year: number;
-  instructor?: string;
-}
-
 export interface Project {
   projectId: number;
   userId: number;
@@ -63,6 +54,15 @@ export interface Project {
   topics?: Topic[];
   collaborators?: Collaborator[];
   media?: ProjectMedia[];
+}
+
+export interface Award {
+  awardId: number;
+  eventId?: number;   // optional — award may not be tied to an event
+  userId?: number;    // optional — standalone award belongs to a user
+  title: string;
+  description?: string;
+  awardedAt: string;
 }
 
 // ── Course interfaces ─────────────────────────────────────────────────────────
@@ -127,6 +127,15 @@ export interface CourseEnrollmentEntry {
   }[];
 }
 
+export interface CourseRef {
+  courseId: number;
+  courseCode: string;
+  courseName: string;
+  semester: string;
+  year: number;
+  instructor?: string;
+}
+
 // ── Event interfaces ──────────────────────────────────────────────────────────
 
 export interface EventRegistration {
@@ -136,14 +145,6 @@ export interface EventRegistration {
   name: string;
   profileImageUrl?: string;
   registeredAt: string;
-}
-
-export interface Award {
-  awardId: number;
-  eventId: number;
-  title: string;
-  description?: string;
-  awardedAt: string;
 }
 
 export interface EventMedia {
