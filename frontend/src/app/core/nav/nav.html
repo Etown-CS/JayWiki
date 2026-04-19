@@ -4,44 +4,72 @@
     <div class="flex items-center justify-between h-16">
 
       <!-- Logo -->
-      <a routerLink="/" class="flex items-center gap-2.5">
+      <a routerLink="/explore" class="flex items-center gap-2.5 shrink-0">
         <span class="font-playfair text-xl font-bold text-white tracking-tight">
           Jay<span class="text-[#4A90C4]">Wiki</span>
         </span>
       </a>
 
-      <!-- Primary links -->
+      <!-- Centre links -->
       <div class="hidden md:flex items-center gap-1">
+
+        <!-- Public links -->
         <a routerLink="/explore"
            routerLinkActive="bg-white/10 text-white"
            class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
           Explore
-        </a>
-        <a routerLink="/events"
-           routerLinkActive="bg-white/10 text-white"
-           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
-          Events
         </a>
         <a routerLink="/courses"
            routerLinkActive="bg-white/10 text-white"
            class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
           Courses
         </a>
-        <a *ngIf="auth.isLoggedIn"
-           routerLink="/dashboard"
+        <a routerLink="/projects"
            routerLinkActive="bg-white/10 text-white"
            class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
-          My Portfolio
+          Projects
         </a>
+        <a routerLink="/events"
+           routerLinkActive="bg-white/10 text-white"
+           class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+          Events
+        </a>
+
+        <!-- Divider -->
+        <div *ngIf="auth.isLoggedIn"
+             class="w-px h-4 bg-white/20 mx-2"></div>
+
+        <!-- Authenticated links -->
+        <ng-container *ngIf="auth.isLoggedIn">
+          <a routerLink="/dashboard"
+             routerLinkActive="bg-white/10 text-white"
+             [routerLinkActiveOptions]="{ exact: true }"
+             class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+            My Dashboard
+          </a>
+          <a routerLink="/dashboard/projects"
+             routerLinkActive="bg-white/10 text-white"
+             class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+            My Projects
+          </a>
+          <a routerLink="/dashboard/courses"
+             routerLinkActive="bg-white/10 text-white"
+             class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+            My Courses
+          </a>
+          <a routerLink="/dashboard/events"
+             routerLinkActive="bg-white/10 text-white"
+             class="px-3 py-1.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/8 transition-colors">
+            My Events
+          </a>
+        </ng-container>
       </div>
 
-      <!-- Right side: avatar or sign-in buttons -->
-      <div class="flex items-center gap-3">
-
+      <!-- Right: avatar or sign-in buttons -->
+      <div class="flex items-center gap-3 shrink-0">
         <ng-container *ngIf="auth.isLoggedIn; else loggedOut">
-          <!-- Avatar — links to own dashboard -->
-          <a routerLink="/dashboard" class="flex items-center gap-2.5 group">
 
+          <a routerLink="/dashboard" class="flex items-center gap-2.5 group">
             <ng-container *ngIf="currentUser?.profileImageUrl; else initialsAvatar">
               <img
                 [src]="currentUser!.profileImageUrl"
@@ -50,7 +78,6 @@
                        group-hover:ring-[#4A90C4] transition-all"
               />
             </ng-container>
-
             <ng-template #initialsAvatar>
               <div class="w-8 h-8 rounded-full bg-[#4A90C4]/20 ring-2 ring-white/20
                           group-hover:ring-[#4A90C4] transition-all
@@ -60,8 +87,7 @@
                 </span>
               </div>
             </ng-template>
-
-            <span class="hidden sm:block text-sm text-white/70 group-hover:text-white transition-colors">
+            <span class="hidden lg:block text-sm text-white/70 group-hover:text-white transition-colors">
               {{ currentUser?.name ?? auth.userName }}
             </span>
           </a>
@@ -86,8 +112,8 @@
             Get Started
           </a>
         </ng-template>
-
       </div>
+
     </div>
   </div>
 </nav>
