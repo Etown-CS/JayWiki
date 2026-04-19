@@ -59,8 +59,9 @@ public class EventMediaController : ProjectBaseController
     /// <summary>
     /// Add media to an event. Requires authentication.
     ///
-    /// For MediaType "link":  send { MediaType, Url } as JSON or form fields — no file needed.
-    /// For MediaType "image" or "video": send multipart/form-data with File + MediaType fields.
+    /// Send multipart/form-data only.
+    /// For MediaType "link":  send MediaType and Url as form fields — no file needed.
+    /// For MediaType "image" or "video": send MediaType and File as form fields.
     ///
     /// File size limits: image 10 MB, video 100 MB.
     /// </summary>
@@ -147,7 +148,6 @@ public class EventMediaController : ProjectBaseController
         if (media == null)
             return NotFound(new { message = $"Media {id} not found for event {eventId}." });
 
-        // Best-effort blob cleanup — only applies to uploaded files, not stored links
         if (media.MediaType != "link")
         {
             try { await _blobStorage.DeleteBlobAsync(media.Url); }

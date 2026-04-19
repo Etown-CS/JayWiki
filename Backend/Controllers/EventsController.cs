@@ -13,9 +13,6 @@ public class EventsController : ProjectBaseController
     public EventsController(ApplicationDbContext context) : base(context) { }
 
     // ─── GET /api/events ──────────────────────────────────────────────────────
-    /// <summary>
-    /// List all events. Supports optional ?category= and ?search= filters.
-    /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetEvents(
@@ -51,10 +48,6 @@ public class EventsController : ProjectBaseController
     }
 
     // ─── GET /api/events/{id} ─────────────────────────────────────────────────
-    /// <summary>
-    /// Get a single event with its registrations, media, and awards.
-    /// Uses separate queries to avoid nav-property dependency on the Event model.
-    /// </summary>
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetEvent(int id)
@@ -103,12 +96,18 @@ public class EventsController : ProjectBaseController
 
     // ─── POST /api/events ─────────────────────────────────────────────────────
     /// <summary>
-    /// Create a new event. Requires authentication.
+    /// Create a new event. Requires instructor or admin privileges.
     /// </summary>
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(request.Title))
             return BadRequest(new { message = "Title is required." });
 
@@ -141,12 +140,18 @@ public class EventsController : ProjectBaseController
 
     // ─── PUT /api/events/{id} ─────────────────────────────────────────────────
     /// <summary>
-    /// Update an existing event. Requires authentication.
+    /// Update an existing event. Requires instructor or admin privileges.
     /// </summary>
     [HttpPut("{id}")]
     [Authorize]
     public async Task<IActionResult> UpdateEvent(int id, [FromBody] UpdateEventRequest request)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = $"Event {id} not found." });
@@ -184,13 +189,19 @@ public class EventsController : ProjectBaseController
 
     // ─── DELETE /api/events/{id} ──────────────────────────────────────────────
     /// <summary>
-    /// Delete an event. EF cascade handles EVENT_REGISTRATION, EVENT_MEDIA, and AWARD.
-    /// Requires authentication.
+    /// Delete an event. Requires instructor or admin privileges.
+    /// EF cascade handles EVENT_REGISTRATION, EVENT_MEDIA, and AWARD.
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> DeleteEvent(int id)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = $"Event {id} not found." });

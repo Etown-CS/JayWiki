@@ -13,9 +13,6 @@ public class AwardsController : ProjectBaseController
     public AwardsController(ApplicationDbContext context) : base(context) { }
 
     // ─── GET /api/events/{eventId}/awards ─────────────────────────────────────
-    /// <summary>
-    /// List all awards for an event. Public.
-    /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAwards(int eventId)
@@ -41,9 +38,6 @@ public class AwardsController : ProjectBaseController
     }
 
     // ─── GET /api/events/{eventId}/awards/{id} ────────────────────────────────
-    /// <summary>
-    /// Get a single award by ID within an event. Public.
-    /// </summary>
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetAward(int eventId, int id)
@@ -66,13 +60,19 @@ public class AwardsController : ProjectBaseController
 
     // ─── POST /api/events/{eventId}/awards ────────────────────────────────────
     /// <summary>
-    /// Create an award for an event. Requires authentication.
+    /// Create an award for an event. Instructor or admin only.
     /// AwardedAt defaults to current UTC time if not provided.
     /// </summary>
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> CreateAward(int eventId, [FromBody] CreateAwardRequest request)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         var eventExists = await _context.Events.AnyAsync(e => e.EventId == eventId);
         if (!eventExists)
             return NotFound(new { message = $"Event {eventId} not found." });
@@ -103,12 +103,18 @@ public class AwardsController : ProjectBaseController
 
     // ─── PUT /api/events/{eventId}/awards/{id} ────────────────────────────────
     /// <summary>
-    /// Update an award. Requires authentication.
+    /// Update an award. Instructor or admin only.
     /// </summary>
     [HttpPut("{id}")]
     [Authorize]
     public async Task<IActionResult> UpdateAward(int eventId, int id, [FromBody] UpdateAwardRequest request)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         var award = await _context.Awards
             .FirstOrDefaultAsync(a => a.AwardId == id && a.EventId == eventId);
 
@@ -138,12 +144,18 @@ public class AwardsController : ProjectBaseController
 
     // ─── DELETE /api/events/{eventId}/awards/{id} ─────────────────────────────
     /// <summary>
-    /// Delete an award. Requires authentication.
+    /// Delete an award. Instructor or admin only.
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> DeleteAward(int eventId, int id)
     {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
         var award = await _context.Awards
             .FirstOrDefaultAsync(a => a.AwardId == id && a.EventId == eventId);
 

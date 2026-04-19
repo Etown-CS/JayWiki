@@ -65,6 +65,22 @@ export interface Project {
   media?: ProjectMedia[];
 }
 
+// ── Course interfaces ─────────────────────────────────────────────────────────
+
+export interface CourseCatalog {
+  catalogId: number;
+  courseCode: string;
+  courseName: string;
+  department?: string;
+  credits?: number;
+  description?: string;
+  createdByUserId?: number;
+}
+
+/**
+ * Used by GET /api/users/{userId}/courses — a student's own enrollment records.
+ * Shape matches CoursesController.GetEnrollments response.
+ */
 export interface CourseEnrollment {
   courseId: number;
   userId: number;
@@ -87,14 +103,28 @@ export interface CourseEnrollment {
   projects: Project[];
 }
 
-export interface CourseCatalog {
-  catalogId: number;
-  courseCode: string;
-  courseName: string;
-  department?: string;
-  credits?: number;
-  description?: string;
-  createdByUserId?: number;
+/**
+ * Used by GET /api/courses/{catalogId}/enrollments — the public catalog view
+ * showing all students enrolled in a specific course.
+ * Shape matches CourseCatalogController.GetEnrollments response.
+ */
+export interface CourseEnrollmentEntry {
+  courseId: number;
+  semester: string;
+  year: number;
+  instructor?: string;
+  student: {
+    userId: number;
+    name: string;
+    email?: string;
+  };
+  projects: {
+    projectId: number;
+    title: string;
+    status: string;
+    githubUrl?: string;
+    demoUrl?: string;
+  }[];
 }
 
 // ── Event interfaces ──────────────────────────────────────────────────────────

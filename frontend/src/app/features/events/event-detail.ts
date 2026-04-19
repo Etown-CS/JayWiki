@@ -23,7 +23,8 @@ export class EventDetail implements OnInit {
   loading = true;
   error   = '';
 
-  // Resolved from GET /api/users/me after login — used for registration state only
+  // Resolved from GET /api/users/me after login — used for registration state only.
+  // Backend always validates via JWT; this is UI state only.
   public currentUserId: number | null = null;
 
   // Registration state
@@ -57,7 +58,6 @@ export class EventDetail implements OnInit {
     this.eventId = Number(this.route.snapshot.paramMap.get('id'));
 
     // Resolve current user ID for registration state checks.
-    // The backend always validates via JWT — this is UI state only.
     if (this.auth.isLoggedIn) {
       try {
         const me = await firstValueFrom(
@@ -67,7 +67,7 @@ export class EventDetail implements OnInit {
           )
         );
         this.currentUserId = me.userId;
-      } catch { /* non-fatal — register button simply won't show pre-checked */ }
+      } catch { /* non-fatal — register button shows but unregister is guarded */ }
     }
 
     await this.loadEvent();
@@ -106,6 +106,13 @@ export class EventDetail implements OnInit {
 
     try {
       if (this.isRegistered) {
+        // Guard: currentUserId must be resolved before attempting DELETE.
+        // If /api/users/me failed on init, we cannot safely unregister.
+        if (!this.currentUserId) {
+          this.registerError = 'Unable to unregister — please refresh and try again.';
+          return;
+        }
+
         await firstValueFrom(
           this.http.delete(
             `${environment.apiBaseUrl}/api/events/${this.eventId}/registrations/${this.currentUserId}`,
@@ -123,6 +130,11 @@ export class EventDetail implements OnInit {
             { headers: this.api.authHeaders() }
           )
         );
+        // Derive currentUserId from the registration response if it wasn't
+        // resolved during init (e.g. /api/users/me failed transiently).
+        if (!this.currentUserId && reg?.userId) {
+          this.currentUserId = reg.userId;
+        }
         this.event.registrations = [...this.event.registrations, reg];
         this.isRegistered = true;
       }

@@ -6,6 +6,8 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./features/login/login').then(m => m.Login),
   },
+
+  // ── Authenticated dashboard routes ────────────────────────────────────────
   {
     path: 'dashboard',
     loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard),
@@ -31,14 +33,29 @@ export const routes: Routes = [
     loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
     canActivate: [authGuard],
   },
+
+  // ── Public student profiles ───────────────────────────────────────────────
   {
     path: 'students/:id',
     loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard),
   },
+
+  // ── Public project detail — two routes both load the same component.
+  //    /projects/:projectId  — canonical route (used by Gallery, Explore).
+  //    /gallery/:userId/:projectId — legacy route kept so existing navigations
+  //    from Courses and other pages that pass userId don't break. ProjectDetail
+  //    uses userId when available to scope the API call, otherwise falls back
+  //    to the global GET /api/projects/:projectId endpoint.
   {
     path: 'projects/:projectId',
     loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
   },
+  {
+    path: 'gallery/:userId/:projectId',
+    loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
+  },
+
+  // ── Public course catalog ─────────────────────────────────────────────────
   {
     path: 'courses',
     loadComponent: () => import('./features/courses/courses').then(m => m.Courses),
@@ -47,6 +64,7 @@ export const routes: Routes = [
     path: 'courses/:id',
     loadComponent: () => import('./features/courses/courses').then(m => m.Courses),
   },
+
   // ── Events (public) ───────────────────────────────────────────────────────
   {
     path: 'events',
@@ -56,13 +74,18 @@ export const routes: Routes = [
     path: 'events/:id',
     loadComponent: () => import('./features/events/event-detail').then(m => m.EventDetail),
   },
-  { path: '', redirectTo: 'gallery', pathMatch: 'full' },
-  { path: 'gallery',
+
+  // ── Gallery + Explore (public) ────────────────────────────────────────────
+  {
+    path: 'gallery',
     loadComponent: () => import('./features/gallery/gallery').then(m => m.Gallery),
   },
   {
-  path: 'explore',
-  loadComponent: () => import('./features/explore/explore').then(m => m.Explore),
+    path: 'explore',
+    loadComponent: () => import('./features/explore/explore').then(m => m.Explore),
   },
+
+  // ── Fallback ──────────────────────────────────────────────────────────────
+  { path: '',   redirectTo: 'gallery', pathMatch: 'full' },
   { path: '**', redirectTo: 'gallery' },
 ];
