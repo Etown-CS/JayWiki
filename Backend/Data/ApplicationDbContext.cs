@@ -10,7 +10,6 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<UserIdentity> UserIdentities { get; set; } = null!;
-    public DbSet<Job> Jobs { get; set; } = null!;
     public DbSet<Social> Socials { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
     public DbSet<CourseCatalog> CourseCatalog { get; set; } = null!;

@@ -14,18 +14,18 @@
       Projects
     </a>
     <a
-      routerLink="/students"
-      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
-      Students
-    </a>
-    <a
       routerLink="/courses"
       routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
       [routerLinkActiveOptions]="{ exact: false }"
       class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
       Courses
+    </a>
+    <a
+      routerLink="/events"
+      routerLinkActive="text-white bg-[#4A90C4]/10 font-medium"
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="text-[13px] text-[#7A9BBF] px-3.5 py-1.5 rounded-md cursor-pointer hover:text-white transition-colors no-underline">
+      Events
     </a>
     <a
       routerLink="/awards"
@@ -40,7 +40,7 @@
       Explore
     </a>
 
-    <!-- Dashboard link — only visible when logged in, highlights when on any /dashboard route -->
+    <!-- My Portfolio — only visible when logged in -->
     <a
       *ngIf="authService.isLoggedIn"
       routerLink="/dashboard"

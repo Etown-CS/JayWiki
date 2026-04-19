@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
-import { User, Job, Social, Project } from '../../core/models/models';
+import { User, Social, Project } from '../../core/models/models';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -23,7 +23,6 @@ import { NavComponent } from '../../core/nav/nav';
 export class Dashboard implements OnInit {
   // Data
   user: User | null = null;
-  jobs: Job[] = [];
   socials: Social[] = [];
   projects: Project[] = [];
 
@@ -88,12 +87,10 @@ export class Dashboard implements OnInit {
 
       const results = await firstValueFrom(
         forkJoin({
-          jobs:     this.http.get<Job[]>    (`${environment.apiBaseUrl}/api/users/${resolvedUserId}/jobs`,     { headers }).pipe(catchError(() => of([]))),
           socials:  this.http.get<Social[]> (`${environment.apiBaseUrl}/api/users/${resolvedUserId}/socials`,  { headers }).pipe(catchError(() => of([]))),
           projects: this.http.get<Project[]>(`${environment.apiBaseUrl}/api/users/${resolvedUserId}/projects`, { headers }).pipe(catchError(() => of([]))),
         })
       );
-      this.jobs     = results.jobs;
       this.socials  = results.socials;
       this.projects = results.projects;
     } catch {
@@ -140,10 +137,6 @@ export class Dashboard implements OnInit {
       : status === 'completed'
         ? 'bg-[#4A90C4]/10 text-[#4A90C4]'
         : 'bg-white/5 text-[#7A9BBF]';
-  }
-
-  getJobDotColor(index: number): string {
-    return ['bg-[#2ECC71]', 'bg-[#4A90C4]', 'bg-[#F0C040]', 'bg-[#C8102E]'][index % 4];
   }
 
   get techTopics(): { name: string; hot: boolean }[] {

@@ -11,16 +11,6 @@ export interface User {
   primaryEmail?: string;
 }
 
-export interface Job {
-  jobId: number;
-  userId: number;
-  company: string;
-  title: string;
-  startDate: string;
-  endDate?: string;
-  description?: string;
-}
-
 export interface Social {
   socialId: number;
   userId: number;
@@ -75,6 +65,22 @@ export interface Project {
   media?: ProjectMedia[];
 }
 
+// ── Course interfaces ─────────────────────────────────────────────────────────
+
+export interface CourseCatalog {
+  catalogId: number;
+  courseCode: string;
+  courseName: string;
+  department?: string;
+  credits?: number;
+  description?: string;
+  createdByUserId?: number;
+}
+
+/**
+ * Used by GET /api/users/{userId}/courses — a student's own enrollment records.
+ * Shape matches CoursesController.GetEnrollments response.
+ */
 export interface CourseEnrollment {
   courseId: number;
   userId: number;
@@ -89,23 +95,79 @@ export interface CourseEnrollment {
     department?: string;
     credits?: number;
   };
-  projects?: Project[];
+  student: {
+    userId: number;
+    name: string;
+    profileImageUrl?: string;
+  };
+  projects: Project[];
 }
 
-export interface CourseCatalog {
-  catalogId: number;
-  courseCode: string;
-  courseName: string;
-  department?: string;
-  credits?: number;
-  description?: string;
-}
-
+/**
+ * Used by GET /api/courses/{catalogId}/enrollments — the public catalog view
+ * showing all students enrolled in a specific course.
+ * Shape matches CourseCatalogController.GetEnrollments response.
+ */
 export interface CourseEnrollmentEntry {
   courseId: number;
   semester: string;
   year: number;
   instructor?: string;
-  student: { userId: number; name: string; email?: string };
-  projects: { projectId: number; title: string; status: string; githubUrl?: string; demoUrl?: string }[];
+  student: {
+    userId: number;
+    name: string;
+    email?: string;
+  };
+  projects: {
+    projectId: number;
+    title: string;
+    status: string;
+    githubUrl?: string;
+    demoUrl?: string;
+  }[];
+}
+
+// ── Event interfaces ──────────────────────────────────────────────────────────
+
+export interface EventRegistration {
+  eventRegistrationId: number;
+  eventId: number;
+  userId: number;
+  name: string;
+  profileImageUrl?: string;
+  registeredAt: string;
+}
+
+export interface Award {
+  awardId: number;
+  eventId: number;
+  title: string;
+  description?: string;
+  awardedAt: string;
+}
+
+export interface EventMedia {
+  eventMediaId: number;
+  eventId: number;
+  mediaType: string; // 'image' | 'video' | 'link'
+  url: string;
+}
+
+export interface EventDetail {
+  eventId: number;
+  title: string;
+  description?: string;
+  category: string;
+  eventDate: string;
+  registrations: EventRegistration[];
+  media: EventMedia[];
+  awards: Award[];
+}
+
+export interface EventSummary {
+  eventId: number;
+  title: string;
+  description?: string;
+  category: string;
+  eventDate: string;
 }

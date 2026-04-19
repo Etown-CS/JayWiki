@@ -12,6 +12,51 @@ public class ProjectsController : ProjectBaseController
 {
     public ProjectsController(ApplicationDbContext context) : base(context) { }
 
+    // ─── GET /api/projects ────────────────────────────────────────────────────
+    /// <summary>
+    /// Returns all projects across all users with owner name and topics embedded.
+    /// Used by the Explore page to avoid N+1 per-user fetches.
+    /// Supports optional ?status= and ?type= filters.
+    /// </summary>
+    [HttpGet("/api/projects")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllProjects(
+        [FromQuery] string? status = null,
+        [FromQuery] string? type   = null)
+    {
+        var query = _context.Projects
+            .Include(p => p.User)
+            .Include(p => p.Topics)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(p => p.Status == status.Trim().ToLower());
+
+        if (!string.IsNullOrWhiteSpace(type))
+            query = query.Where(p => p.ProjectType == type.Trim().ToLower());
+
+        var projects = await query
+            .OrderByDescending(p => p.ProjectId)
+            .Select(p => new
+            {
+                p.ProjectId,
+                p.UserId,
+                OwnerName = p.User.Name,
+                p.Title,
+                p.Description,
+                p.ProjectType,
+                p.Status,
+                p.StartDate,
+                p.EndDate,
+                p.GithubUrl,
+                p.DemoUrl,
+                Topics = p.Topics.Select(t => new { t.TopicId, t.Name })
+            })
+            .ToListAsync();
+
+        return Ok(projects);
+    }
+
     // ─── GET /api/users/{userId}/projects ─────────────────────────────────────
     [HttpGet]
     [AllowAnonymous]
@@ -179,7 +224,7 @@ public class ProjectsController : ProjectBaseController
         if (string.IsNullOrWhiteSpace(request.Title))
             return BadRequest(new { message = "Title is required." });
 
-        var validTypes   = new[] { "academic", "research", "club", "personal" };
+        var validTypes    = new[] { "academic", "research", "club", "personal" };
         var validStatuses = new[] { "active", "completed", "archived" };
 
         if (!string.IsNullOrWhiteSpace(request.ProjectType) && !validTypes.Contains(request.ProjectType))
@@ -188,7 +233,6 @@ public class ProjectsController : ProjectBaseController
         if (!string.IsNullOrWhiteSpace(request.Status) && !validStatuses.Contains(request.Status))
             return BadRequest(new { message = $"Invalid status. Must be one of: {string.Join(", ", validStatuses)}." });
 
-        // Validate CourseId belongs to this user if provided
         if (request.CourseId.HasValue)
         {
             var courseExists = await _context.Courses
@@ -246,7 +290,6 @@ public class ProjectsController : ProjectBaseController
         if (project == null)
             return NotFound(new { message = $"Project {id} not found for user {userId}." });
 
-        // Owner OR collaborator can update
         if (!await IsProjectMemberAsync(id, currentUser.UserId))
             return Forbid();
 
@@ -259,7 +302,6 @@ public class ProjectsController : ProjectBaseController
         if (!string.IsNullOrWhiteSpace(request.Status) && !validStatuses.Contains(request.Status))
             return BadRequest(new { message = $"Invalid status. Must be one of: {string.Join(", ", validStatuses)}." });
 
-        // Validate new CourseId belongs to this user if being changed
         if (request.CourseId.HasValue && request.CourseId != project.CourseId)
         {
             var courseExists = await _context.Courses
@@ -268,15 +310,15 @@ public class ProjectsController : ProjectBaseController
                 return NotFound(new { message = $"Course {request.CourseId} not found for user {userId}." });
         }
 
-        project.CourseId    = request.CourseId ?? project.CourseId;
+        project.CourseId    = request.CourseId    ?? project.CourseId;
         project.ProjectType = request.ProjectType ?? project.ProjectType;
         project.Title       = request.Title?.Trim() ?? project.Title;
         project.Description = request.Description?.Trim() ?? project.Description;
-        project.StartDate   = request.StartDate ?? project.StartDate;
-        project.EndDate     = request.EndDate ?? project.EndDate;
-        project.Status      = request.Status ?? project.Status;
+        project.StartDate   = request.StartDate   ?? project.StartDate;
+        project.EndDate     = request.EndDate     ?? project.EndDate;
+        project.Status      = request.Status      ?? project.Status;
         project.GithubUrl   = request.GithubUrl?.Trim() ?? project.GithubUrl;
-        project.DemoUrl     = request.DemoUrl?.Trim() ?? project.DemoUrl;
+        project.DemoUrl     = request.DemoUrl?.Trim()   ?? project.DemoUrl;
 
         await _context.SaveChangesAsync();
 
@@ -310,7 +352,6 @@ public class ProjectsController : ProjectBaseController
         if (project == null)
             return NotFound(new { message = $"Project {id} not found for user {userId}." });
 
-        // Owner only can delete
         if (currentUser.UserId != userId)
             return Forbid();
 
@@ -323,23 +364,23 @@ public class ProjectsController : ProjectBaseController
 
 // ─── Request DTOs ─────────────────────────────────────────────────────────────
 public record CreateProjectRequest(
-    string Title,
-    string? Description,
-    string? ProjectType,
-    int? CourseId,
+    string    Title,
+    string?   Description,
+    string?   ProjectType,
+    int?      CourseId,
     DateOnly? StartDate,
     DateOnly? EndDate,
-    string? Status,
-    string? GithubUrl,
-    string? DemoUrl);
+    string?   Status,
+    string?   GithubUrl,
+    string?   DemoUrl);
 
 public record UpdateProjectRequest(
-    string? Title,
-    string? Description,
-    string? ProjectType,
-    int? CourseId,
+    string?   Title,
+    string?   Description,
+    string?   ProjectType,
+    int?      CourseId,
     DateOnly? StartDate,
     DateOnly? EndDate,
-    string? Status,
-    string? GithubUrl,
-    string? DemoUrl);
+    string?   Status,
+    string?   GithubUrl,
+    string?   DemoUrl);

@@ -1,0 +1,304 @@
+<!-- frontend/src/app/features/event-detail/event-detail.html -->
+<app-nav></app-nav>
+
+<div class="min-h-screen bg-[#0D1B2E] text-white font-dm-sans">
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="flex justify-center items-center min-h-[60vh]">
+    <div class="w-8 h-8 border-2 border-[#4A90C4] border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <!-- ── Error ─────────────────────────────────────────────────────────────── -->
+  <div *ngIf="error && !loading" class="max-w-3xl mx-auto px-6 py-20 text-center">
+    <p class="text-[#C8102E]">{{ error }}</p>
+  </div>
+
+  <!-- ── Content ───────────────────────────────────────────────────────────── -->
+  <div *ngIf="!loading && event" class="max-w-3xl mx-auto px-6 py-10 space-y-8">
+
+    <!-- ── Event header ───────────────────────────────────────────────────── -->
+    <div class="bg-[#162338] border border-white/10 rounded-2xl p-8">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <!-- Category + upcoming -->
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-xs font-medium px-2.5 py-1 rounded-full"
+                  [ngClass]="getCategoryColor(event.category)">
+              {{ getCategoryLabel(event.category) }}
+            </span>
+            <span *ngIf="isUpcoming(event.eventDate)"
+                  class="text-xs text-green-400 font-medium">
+              Upcoming
+            </span>
+          </div>
+
+          <h1 class="text-2xl font-playfair font-bold text-white mb-2 leading-snug">
+            {{ event.title }}
+          </h1>
+
+          <div class="flex items-center gap-1.5 text-white/40 text-sm mb-4">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {{ formatDate(event.eventDate) }}
+          </div>
+
+          <p *ngIf="event.description" class="text-white/60 leading-relaxed">
+            {{ event.description }}
+          </p>
+        </div>
+
+        <!-- ── Register / Unregister button ─────────────────────────────── -->
+        <div *ngIf="auth.isLoggedIn" class="flex-shrink-0">
+          <button
+            (click)="toggleRegistration()"
+            [disabled]="registerLoading"
+            [ngClass]="isRegistered
+              ? 'bg-transparent border border-[#C8102E]/60 text-[#C8102E] hover:bg-[#C8102E]/10'
+              : 'bg-[#4A90C4] text-white hover:bg-[#3a7ab4]'"
+            class="px-5 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            <span *ngIf="registerLoading">…</span>
+            <span *ngIf="!registerLoading && !isRegistered">Register</span>
+            <span *ngIf="!registerLoading && isRegistered">Unregister</span>
+          </button>
+          <p *ngIf="registerError" class="text-[#C8102E] text-xs mt-1 text-right">
+            {{ registerError }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Attendee count -->
+      <p class="text-white/30 text-xs mt-4">
+        {{ event.registrations.length }}
+        {{ event.registrations.length === 1 ? 'person' : 'people' }} registered
+      </p>
+    </div>
+
+    <!-- ── Registrations ──────────────────────────────────────────────────── -->
+    <div *ngIf="event.registrations.length > 0"
+         class="bg-[#162338] border border-white/10 rounded-2xl p-6">
+      <h2 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
+        Attendees ({{ event.registrations.length }})
+      </h2>
+      <div class="flex flex-wrap gap-3">
+        <div *ngFor="let reg of event.registrations"
+             class="flex items-center gap-2 bg-[#0D1B2E] rounded-lg px-3 py-2">
+          <!-- Avatar -->
+          <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0
+                      bg-[#4A90C4]/20 flex items-center justify-center text-xs text-[#4A90C4] font-semibold">
+            <img *ngIf="reg.profileImageUrl" [src]="reg.profileImageUrl"
+                 [alt]="reg.name" class="w-full h-full object-cover"/>
+            <span *ngIf="!reg.profileImageUrl">{{ getInitials(reg.name) }}</span>
+          </div>
+          <span class="text-sm text-white/80">{{ reg.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Awards ─────────────────────────────────────────────────────────── -->
+    <div *ngIf="event.awards.length > 0"
+         class="bg-[#162338] border border-white/10 rounded-2xl p-6">
+      <h2 class="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
+        Awards & Recognition
+      </h2>
+      <div class="space-y-3">
+        <div *ngFor="let award of event.awards"
+             class="flex gap-4 bg-[#0D1B2E] rounded-xl p-4">
+          <!-- Trophy icon -->
+          <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0
+                       3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946
+                       3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138
+                       3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806
+                       3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438
+                       3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-white text-sm">{{ award.title }}</p>
+            <p *ngIf="award.description" class="text-white/50 text-sm mt-0.5">
+              {{ award.description }}
+            </p>
+            <p class="text-white/30 text-xs mt-1">{{ formatAwardDate(award.awardedAt) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Media ──────────────────────────────────────────────────────────── -->
+    <div class="bg-[#162338] border border-white/10 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-white/60 uppercase tracking-wider">
+          Media
+        </h2>
+        <!-- Add media button — authenticated users only -->
+        <button
+          *ngIf="auth.isLoggedIn && !showMediaForm"
+          (click)="showMediaForm = true"
+          class="text-xs text-[#4A90C4] hover:text-white transition-colors flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add
+        </button>
+      </div>
+
+      <!-- Upload form -->
+      <div *ngIf="showMediaForm"
+           class="bg-[#0D1B2E] border border-white/10 rounded-xl p-5 mb-5 space-y-4">
+
+        <!-- Media type selector -->
+        <div class="flex gap-2">
+          <button *ngFor="let type of ['image','video','link']"
+                  (click)="mediaType = type; mediaFile = null; mediaFileName = ''; mediaLinkUrl = ''"
+                  [ngClass]="mediaType === type
+                    ? 'bg-[#4A90C4] text-white'
+                    : 'bg-[#162338] text-white/50 hover:text-white border border-white/10'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all">
+            {{ type }}
+          </button>
+        </div>
+
+        <!-- Link URL input -->
+        <div *ngIf="mediaType === 'link'">
+          <input
+            type="url"
+            [(ngModel)]="mediaLinkUrl"
+            placeholder="https://…"
+            class="w-full bg-[#162338] border border-white/10 rounded-lg px-4 py-2.5
+                   text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#4A90C4]"/>
+        </div>
+
+        <!-- File input -->
+        <div *ngIf="mediaType !== 'link'">
+          <label class="block cursor-pointer">
+            <div class="border border-dashed border-white/20 rounded-lg px-4 py-6 text-center
+                        hover:border-[#4A90C4]/50 transition-colors">
+              <svg class="w-6 h-6 mx-auto mb-2 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14
+                         m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p class="text-sm text-white/40">
+                {{ mediaFileName || ('Click to select a ' + mediaType) }}
+              </p>
+              <p class="text-xs text-white/25 mt-1">
+                {{ mediaType === 'image' ? 'JPEG, PNG, GIF, WEBP · max 10 MB' : 'MP4, MOV, WEBM · max 100 MB' }}
+              </p>
+            </div>
+            <input type="file" class="hidden"
+                   [accept]="mediaType === 'image' ? 'image/*' : 'video/*'"
+                   (change)="onFileSelected($event)"/>
+          </label>
+        </div>
+
+        <!-- Error -->
+        <p *ngIf="mediaError" class="text-[#C8102E] text-xs">{{ mediaError }}</p>
+
+        <!-- Actions -->
+        <div class="flex gap-2 pt-1">
+          <button
+            (click)="submitMedia()"
+            [disabled]="mediaUploading"
+            class="px-4 py-2 bg-[#4A90C4] text-white rounded-lg text-sm font-medium
+                   hover:bg-[#3a7ab4] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            {{ mediaUploading ? 'Uploading…' : 'Upload' }}
+          </button>
+          <button (click)="resetMediaForm()"
+                  class="px-4 py-2 text-white/50 hover:text-white text-sm transition-colors">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Media grid -->
+      <div *ngIf="event.media.length > 0" class="space-y-3">
+
+        <!-- Images -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div *ngFor="let m of event.media" [ngSwitch]="m.mediaType" class="relative group">
+
+            <!-- Image -->
+            <ng-container *ngSwitchCase="'image'">
+              <div class="relative rounded-xl overflow-hidden aspect-video bg-[#0D1B2E]">
+                <img [src]="m.url" [alt]="'Event image'" class="w-full h-full object-cover"/>
+                <button
+                  *ngIf="auth.isLoggedIn"
+                  (click)="deleteMedia(m.eventMediaId)"
+                  [disabled]="deletingMediaId === m.eventMediaId"
+                  class="absolute top-2 right-2 w-6 h-6 bg-black/60 rounded-full
+                         flex items-center justify-center opacity-0 group-hover:opacity-100
+                         transition-opacity hover:bg-[#C8102E]/80 disabled:opacity-50">
+                  <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </ng-container>
+
+            <!-- Video -->
+            <ng-container *ngSwitchCase="'video'">
+              <div class="relative rounded-xl overflow-hidden aspect-video bg-[#0D1B2E]">
+                <video [src]="m.url" controls class="w-full h-full object-cover"></video>
+                <button
+                  *ngIf="auth.isLoggedIn"
+                  (click)="deleteMedia(m.eventMediaId)"
+                  [disabled]="deletingMediaId === m.eventMediaId"
+                  class="absolute top-2 right-2 w-6 h-6 bg-black/60 rounded-full
+                         flex items-center justify-center opacity-0 group-hover:opacity-100
+                         transition-opacity hover:bg-[#C8102E]/80 disabled:opacity-50">
+                  <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </ng-container>
+
+          </div>
+        </div>
+
+        <!-- Links (separate row) -->
+        <div *ngFor="let m of event.media" class="group">
+          <div *ngIf="m.mediaType === 'link'"
+               class="flex items-center justify-between bg-[#0D1B2E] rounded-xl px-4 py-3">
+            <a [href]="m.url" target="_blank" rel="noopener noreferrer"
+               class="flex items-center gap-2 text-[#4A90C4] hover:text-white text-sm
+                      transition-colors truncate" (click)="$event.stopPropagation()">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101
+                         m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+              </svg>
+              <span class="truncate">{{ m.url }}</span>
+            </a>
+            <button
+              *ngIf="auth.isLoggedIn"
+              (click)="deleteMedia(m.eventMediaId)"
+              [disabled]="deletingMediaId === m.eventMediaId"
+              class="ml-3 flex-shrink-0 text-white/20 hover:text-[#C8102E]
+                     transition-colors disabled:opacity-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5
+                         4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Empty media state -->
+      <div *ngIf="event.media.length === 0 && !showMediaForm"
+           class="text-center py-8 text-white/25 text-sm">
+        No media attached yet.
+      </div>
+    </div>
+
+  </div>
+</div>
