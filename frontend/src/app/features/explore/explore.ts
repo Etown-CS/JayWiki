@@ -9,13 +9,7 @@ import { catchError } from 'rxjs/operators';
 import { NavComponent } from '../../core/nav/nav';
 import { environment } from '../../../environments/environment';
 
-interface UserSummary {
-  userId: number;
-  name: string;
-  profileImageUrl?: string;
-}
-
-interface ProjectResult {
+interface ProjectSummary {
   projectId: number;
   userId: number;
   ownerName: string;
@@ -53,24 +47,20 @@ type ResultType = 'all' | 'projects' | 'students' | 'courses';
   templateUrl: './explore.html',
 })
 export class Explore implements OnInit {
-  // Search state
-  searchTerm          = '';
+  searchTerm           = '';
   public activeTab: ResultType = 'all';
-  hasSearched         = false;
+  hasSearched          = false;
 
-  // Filter state
   selectedStatuses: string[] = ['active', 'completed', 'archived'];
   selectedTypes:    string[] = ['academic', 'research', 'club', 'personal'];
 
-  // Raw data
-  private allProjects: ProjectResult[] = [];
-  private allStudents: StudentResult[] = [];
-  private allCourses:  CourseResult[]  = [];
+  private allProjects: ProjectSummary[] = [];
+  private allStudents: StudentResult[]  = [];
+  private allCourses:  CourseResult[]   = [];
 
-  // Filtered results
-  filteredProjects: ProjectResult[] = [];
-  filteredStudents: StudentResult[] = [];
-  filteredCourses:  CourseResult[]  = [];
+  filteredProjects: ProjectSummary[] = [];
+  filteredStudents: StudentResult[]  = [];
+  filteredCourses:  CourseResult[]   = [];
 
   loading   = true;
   loadError = '';
@@ -100,76 +90,41 @@ export class Explore implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadAllData();
-
-    // Support ?q= in URL
     const q = this.route.snapshot.queryParamMap.get('q');
-    if (q) {
-      this.searchTerm = q;
-      this.runSearch();
-    }
+    if (q) { this.searchTerm = q; this.runSearch(); }
   }
 
-  // ── Data loading ────────────────────────────────────────────────────────────
+  // ── Data loading — single call per resource type, no N+1 ───────────────────
 
   private async loadAllData(): Promise<void> {
     try {
-      const [users, courses] = await firstValueFrom(
+      const [projects, users, courses] = await firstValueFrom(
         forkJoin([
-          this.http.get<UserSummary[]>(`${environment.apiBaseUrl}/api/users`),
+          this.http.get<ProjectSummary[]>(`${environment.apiBaseUrl}/api/projects`)
+            .pipe(catchError(() => of([] as ProjectSummary[]))),
+          this.http.get<any[]>(`${environment.apiBaseUrl}/api/users`)
+            .pipe(catchError(() => of([]))),
           this.http.get<CourseResult[]>(`${environment.apiBaseUrl}/api/courses`)
             .pipe(catchError(() => of([] as CourseResult[]))),
         ])
       );
 
-      this.allCourses = courses;
+      this.allProjects = projects;
+      this.allCourses  = courses;
 
-      // Fetch each user's projects in parallel (best-effort)
-      const projectSets = await Promise.allSettled(
-        users.map(u =>
-          firstValueFrom(
-            this.http.get<any[]>(`${environment.apiBaseUrl}/api/users/${u.userId}/projects`)
-              .pipe(catchError(() => of([])))
-          ).then(projects => ({ user: u, projects }))
-        )
-      );
-
-      const projectList: ProjectResult[] = [];
-      const studentList: StudentResult[] = [];
-
-      for (const result of projectSets) {
-        if (result.status !== 'fulfilled') continue;
-        const { user, projects } = result.value;
-
-        const allTopics = projects.flatMap((p: any) =>
-          (p.topics ?? []).map((t: any) => t.name as string)
-        );
+      // Build student list from users + aggregate topics from projects
+      this.allStudents = users.map((u: any) => {
+        const userProjects = projects.filter(p => p.userId === u.userId);
+        const allTopics    = userProjects.flatMap(p => p.topics.map(t => t.name));
         const uniqueTopics = [...new Set<string>(allTopics)].slice(0, 6);
-
-        studentList.push({
-          userId:          user.userId,
-          name:            user.name,
-          profileImageUrl: user.profileImageUrl,
-          projectCount:    projects.length,
+        return {
+          userId:          u.userId,
+          name:            u.name,
+          profileImageUrl: u.profileImageUrl,
+          projectCount:    userProjects.length,
           topics:          uniqueTopics,
-        });
-
-        for (const p of projects) {
-          projectList.push({
-            projectId:   p.projectId,
-            userId:      user.userId,
-            ownerName:   user.name,
-            title:       p.title,
-            description: p.description,
-            projectType: p.projectType ?? 'academic',
-            status:      p.status      ?? 'active',
-            startDate:   p.startDate,
-            topics:      p.topics      ?? [],
-          });
-        }
-      }
-
-      this.allProjects = projectList;
-      this.allStudents = studentList;
+        };
+      });
     } catch {
       this.loadError = 'Failed to load data. Search may be limited.';
     } finally {
@@ -226,9 +181,7 @@ export class Explore implements OnInit {
     this.runSearch();
   }
 
-  setTab(value: ResultType): void {
-    this.activeTab = value;
-  }
+  setTab(value: ResultType): void { this.activeTab = value; }
 
   // ── Facet toggles ───────────────────────────────────────────────────────────
 
@@ -251,24 +204,15 @@ export class Explore implements OnInit {
   get totalResults(): number {
     return this.filteredProjects.length + this.filteredStudents.length + this.filteredCourses.length;
   }
-
   get projectCount(): number { return this.filteredProjects.length; }
   get studentCount(): number { return this.filteredStudents.length; }
   get courseCount():  number { return this.filteredCourses.length;  }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  goToProject(p: ProjectResult): void {
-    this.router.navigate(['/projects', p.projectId]);
-  }
-
-  goToStudent(s: StudentResult): void {
-    this.router.navigate(['/students', s.userId]);
-  }
-
-  goToCourse(c: CourseResult): void {
-    this.router.navigate(['/courses', c.catalogId]);
-  }
+  goToProject(p: ProjectSummary): void { this.router.navigate(['/projects', p.projectId]); }
+  goToStudent(s: StudentResult):  void { this.router.navigate(['/students', s.userId]);    }
+  goToCourse(c: CourseResult):    void { this.router.navigate(['/courses', c.catalogId]);  }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -293,26 +237,9 @@ export class Explore implements OnInit {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
-  highlight(text: string): string {
-    if (!this.searchTerm.trim()) return text;
-    const escaped = this.searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return text.replace(
-      new RegExp(`(${escaped})`, 'gi'),
-      '<mark class="bg-[#4A90C4]/25 text-[#4A90C4] rounded px-0.5">$1</mark>'
-    );
-  }
-
-  isStatusChecked(status: string): boolean {
-    return this.selectedStatuses.includes(status);
-  }
-
-  isTypeChecked(type: string): boolean {
-    return this.selectedTypes.includes(type);
-  }
-
-  isActiveTab(value: ResultType): boolean {
-    return this.activeTab === value;
-  }
+  isStatusChecked(status: string): boolean { return this.selectedStatuses.includes(status); }
+  isTypeChecked(type: string):     boolean { return this.selectedTypes.includes(type);      }
+  isActiveTab(value: ResultType):  boolean { return this.activeTab === value;                }
 
   getTabCount(value: ResultType): number {
     switch (value) {
@@ -321,5 +248,26 @@ export class Explore implements OnInit {
       case 'courses':  return this.courseCount;
       default:         return this.totalResults;
     }
+  }
+
+  // Escape HTML special characters before inserting user-derived text into
+  // innerHTML — prevents markup injection even from trusted API responses.
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;')
+      .replace(/'/g,  '&#39;');
+  }
+
+  highlight(text: string): string {
+    const safe = this.escapeHtml(text);
+    if (!this.searchTerm.trim()) return safe;
+    const escaped = this.searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(
+      new RegExp(`(${escaped})`, 'gi'),
+      '<mark class="bg-[#4A90C4]/25 text-[#4A90C4] rounded px-0.5">$1</mark>'
+    );
   }
 }
