@@ -9,7 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavComponent } from '../../core/nav/nav';
 import { environment } from '../../../environments/environment';
-import { CourseCatalog, CourseEnrollmentEntry } from '../../core/models/models';
+import { CourseCatalog, CourseEnrollment } from '../../core/models/models';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -21,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
 export class Courses implements OnInit {
   catalog: CourseCatalog[] = [];
   selectedCatalogId: number | null = null;
-  enrollments: CourseEnrollmentEntry[] = [];
+  enrollments: CourseEnrollment[] = [];
   selectedSemester = 'all';
   loadingCatalog = true;
   loadingEnrollments = false;
@@ -66,7 +66,7 @@ export class Courses implements OnInit {
     this.cdr.detectChanges();
     try {
       this.enrollments = await firstValueFrom(
-        this.http.get<CourseEnrollmentEntry[]>(
+        this.http.get<CourseEnrollment[]>(
           `${environment.apiBaseUrl}/api/courses/${catalogId}/enrollments`
         )
       );
@@ -99,7 +99,7 @@ export class Courses implements OnInit {
     return ['all', ...Array.from(seen).sort((a, b) => b.localeCompare(a))];
   }
 
-  get filteredEnrollments(): CourseEnrollmentEntry[] {
+  get filteredEnrollments(): CourseEnrollment[] {
     if (this.selectedSemester === 'all') return this.enrollments;
     return this.enrollments.filter(
       e => `${e.semester} ${e.year}` === this.selectedSemester

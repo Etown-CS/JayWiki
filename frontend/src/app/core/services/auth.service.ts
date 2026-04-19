@@ -34,6 +34,10 @@ const microsoftConfig: AuthConfig = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  // Prevents upsertUser() from firing on every navigation —
+  // only needs to run once per session after login.
+  private userUpserted = false;
+
   constructor(
     private oauthService: OAuthService,
     private router: Router,
@@ -54,11 +58,18 @@ export class AuthService {
     localStorage.removeItem('PKCE_verifier');
     localStorage.removeItem('local_token');
     localStorage.removeItem('local_user_name');
+    this.userUpserted = false; // reset on logout/new login
   }
 
   // Calls POST /api/users/me to upsert the user in the database after login.
   // Uses the ID token for Google, access token for Microsoft.
+  // Only runs once per session — subsequent navigations skip this entirely.
   private async upsertUser(): Promise<void> {
+    if (this.userUpserted) {
+      this.log('upsertUser: already upserted this session, skipping');
+      return;
+    }
+
     const provider = sessionStorage.getItem('auth_provider');
     const token = provider === 'microsoft'
       ? this.oauthService.getAccessToken()
@@ -75,6 +86,7 @@ export class AuthService {
         this.http.post(`${environment.apiBaseUrl}/api/users/me`, {}, { headers })
       );
       this.log('upsertUser success:', result);
+      this.userUpserted = true;
     } catch (err) {
       // Log but don't block navigation — user can still use the app
       this.log('upsertUser failed:', err);
@@ -122,9 +134,21 @@ export class AuthService {
 
     if (this.isLoggedIn) {
       this.log('Login successful! Upserting user...');
-      await this.upsertUser();  // ← upsert before navigating
-      this.log('Navigating to dashboard...');
-      this.router.navigate(['/dashboard']);
+      await this.upsertUser();
+
+      // Only redirect to dashboard from entry points — don't hijack
+      // in-app navigation when the user is already on a valid route.
+      const currentPath = window.location.pathname;
+      const shouldRedirect = currentPath === '/'
+        || currentPath === '/login'
+        || currentPath === '/index.html';
+
+      if (shouldRedirect) {
+        this.log('Navigating to dashboard...');
+        this.router.navigate(['/dashboard']);
+      } else {
+        this.log('Already on a valid route, staying at:', currentPath);
+      }
     } else {
       this.log('Login failed - tokens not valid');
       sessionStorage.removeItem('auth_provider');

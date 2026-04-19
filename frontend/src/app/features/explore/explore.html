@@ -1,0 +1,287 @@
+<!-- frontend/src/app/features/explore/explore.html -->
+<app-nav></app-nav>
+
+<div class="min-h-screen bg-[#0D1B2E] text-white font-dm-sans">
+  <div class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- ── Search hero ────────────────────────────────────────────────────── -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-playfair font-bold mb-2">Search ECS JayWiki</h1>
+      <p class="text-white/40 text-sm font-light mb-7">
+        Find projects, students, and courses across all semesters
+      </p>
+
+      <!-- Search box -->
+      <div class="max-w-2xl mx-auto flex items-center gap-2
+                  bg-[#162338] border border-[#4A90C4]/40 rounded-2xl px-5 py-2
+                  shadow-[0_0_30px_rgba(74,144,196,0.08)]">
+        <svg class="w-5 h-5 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (keydown)="onSearchKeydown($event)"
+          placeholder="Search projects, students, courses…"
+          class="flex-1 bg-transparent text-white text-base placeholder-white/25
+                 focus:outline-none py-2"/>
+        <button
+          (click)="runSearch()"
+          class="bg-[#4A90C4] text-white px-5 py-2 rounded-xl text-sm font-semibold
+                 hover:bg-[#3a7ab4] transition-colors flex-shrink-0">
+          Search
+        </button>
+      </div>
+
+      <!-- Type tabs -->
+      <div class="flex justify-center gap-2 mt-4 flex-wrap">
+        <button
+          *ngFor="let tab of tabs"
+          (click)="setTab(tab.value)"
+          [ngClass]="isActiveTab(tab.value)
+            ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30 font-medium'
+            : 'text-white/40 border-white/10 hover:text-white/70'"
+          class="text-sm px-4 py-1.5 rounded-full border transition-all">
+          {{ tab.label }}
+          <span *ngIf="hasSearched && tab.value !== 'all'"
+                class="ml-1 text-xs bg-white/10 rounded-full px-1.5 py-0.5">
+            {{ getTabCount(tab.value) }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Loading ────────────────────────────────────────────────────────── -->
+    <div *ngIf="loading" class="flex justify-center py-10">
+      <div class="w-7 h-7 border-2 border-[#4A90C4] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- ── Pre-search: trending tags ──────────────────────────────────────── -->
+    <div *ngIf="!loading && !hasSearched" class="mb-10">
+      <p class="text-xs text-white/30 uppercase tracking-widest font-semibold mb-3">
+        Trending Technologies
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          *ngFor="let tag of trendingTags"
+          (click)="applyTrendingTag(tag)"
+          class="text-sm px-4 py-1.5 rounded-full border border-white/10 text-white/50
+                 hover:border-[#4A90C4]/40 hover:text-[#4A90C4] hover:bg-[#4A90C4]/06
+                 transition-all">
+          {{ tag }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Results layout ─────────────────────────────────────────────────── -->
+    <div *ngIf="!loading && hasSearched" class="grid grid-cols-[200px_1fr] gap-6">
+
+      <!-- Facets sidebar -->
+      <div class="bg-[#162338] border border-white/10 rounded-2xl p-5 h-fit space-y-6">
+
+        <!-- Status -->
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-3">
+            Status
+          </p>
+          <div class="space-y-2">
+            <div *ngFor="let s of statuses" class="flex items-center gap-2 cursor-pointer group"
+                 (click)="toggleStatus(s)">
+              <div [ngClass]="isStatusChecked(s)
+                     ? 'bg-[#4A90C4] border-[#4A90C4]'
+                     : 'border-white/20 bg-transparent'"
+                   class="w-3.5 h-3.5 rounded border flex items-center justify-center
+                          flex-shrink-0 transition-all">
+                <svg *ngIf="isStatusChecked(s)" class="w-2.5 h-2.5" fill="none"
+                     stroke="white" viewBox="0 0 12 12" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 6l3 3 5-5"/>
+                </svg>
+              </div>
+              <span class="text-sm text-white/70 group-hover:text-white transition-colors capitalize">
+                {{ s }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project type -->
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-3">
+            Project Type
+          </p>
+          <div class="space-y-2">
+            <div *ngFor="let t of types" class="flex items-center gap-2 cursor-pointer group"
+                 (click)="toggleType(t)">
+              <div [ngClass]="isTypeChecked(t)
+                     ? 'bg-[#4A90C4] border-[#4A90C4]'
+                     : 'border-white/20 bg-transparent'"
+                   class="w-3.5 h-3.5 rounded border flex items-center justify-center
+                          flex-shrink-0 transition-all">
+                <svg *ngIf="isTypeChecked(t)" class="w-2.5 h-2.5" fill="none"
+                     stroke="white" viewBox="0 0 12 12" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 6l3 3 5-5"/>
+                </svg>
+              </div>
+              <span class="text-sm text-white/70 group-hover:text-white transition-colors capitalize">
+                {{ t }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results column -->
+      <div>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-white/40">
+            <span class="text-white font-semibold">{{ totalResults }}</span>
+            result{{ totalResults !== 1 ? 's' : '' }} for
+            <span class="text-[#4A90C4]">"{{ searchTerm }}"</span>
+          </p>
+        </div>
+
+        <!-- No results -->
+        <div *ngIf="totalResults === 0"
+             class="text-center py-16 text-white/25">
+          <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <p class="text-sm">No results found for "{{ searchTerm }}"</p>
+        </div>
+
+        <!-- ── Projects ──────────────────────────────────────────────────── -->
+        <ng-container *ngIf="isActiveTab('all') || isActiveTab('projects')">
+          <div *ngIf="filteredProjects.length > 0" class="mb-6">
+            <p *ngIf="isActiveTab('all')"
+               class="text-xs text-white/30 uppercase tracking-widest font-semibold mb-3">
+              Projects
+            </p>
+            <div class="space-y-3">
+              <div *ngFor="let p of filteredProjects"
+                   (click)="goToProject(p)"
+                   class="bg-[#162338] border border-white/10 rounded-xl p-5
+                          flex gap-4 cursor-pointer hover:border-[#4A90C4]/30 transition-all group">
+                <div class="w-11 h-11 rounded-xl bg-[#4A90C4]/10 flex items-center
+                            justify-center text-xl flex-shrink-0">
+                  🌐
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="inline-block text-[10px] uppercase tracking-wider font-semibold
+                               px-2 py-0.5 rounded bg-[#4A90C4]/12 text-[#4A90C4] mb-1.5">
+                    Project
+                  </span>
+                  <p class="font-semibold text-white group-hover:text-[#4A90C4] transition-colors
+                             leading-snug mb-1" [innerHTML]="highlight(p.title)"></p>
+                  <p class="text-xs text-white/40 mb-2">
+                    {{ p.ownerName }} · {{ getTypeLabel(p.projectType) }}
+                  </p>
+                  <div class="flex flex-wrap gap-1.5">
+                    <span *ngFor="let t of p.topics.slice(0, 5)"
+                          class="text-[10px] px-2 py-0.5 rounded-full font-medium
+                                 bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
+                      {{ t.name }}
+                    </span>
+                    <span [ngClass]="getStatusColor(p.status)"
+                          class="text-[10px] px-2 py-0.5 rounded-full font-medium capitalize">
+                      {{ p.status }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex-shrink-0 text-right text-xs text-white/30">
+                  {{ formatDate(p.startDate) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ── Students ──────────────────────────────────────────────────── -->
+        <ng-container *ngIf="isActiveTab('all') || isActiveTab('students')">
+          <div *ngIf="filteredStudents.length > 0" class="mb-6">
+            <p *ngIf="isActiveTab('all')"
+               class="text-xs text-white/30 uppercase tracking-widest font-semibold mb-3">
+              Students
+            </p>
+            <div class="space-y-3">
+              <div *ngFor="let s of filteredStudents"
+                   (click)="goToStudent(s)"
+                   class="bg-[#162338] border border-white/10 rounded-xl p-5
+                          flex gap-4 cursor-pointer hover:border-[#4A90C4]/30 transition-all group">
+                <div class="w-11 h-11 rounded-xl bg-[#4A90C4]/10 flex items-center
+                            justify-center flex-shrink-0 overflow-hidden">
+                  <img *ngIf="s.profileImageUrl" [src]="s.profileImageUrl" [alt]="s.name"
+                       class="w-full h-full object-cover"/>
+                  <span *ngIf="!s.profileImageUrl"
+                        class="text-sm font-bold text-[#4A90C4] font-playfair">
+                    {{ getInitials(s.name) }}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="inline-block text-[10px] uppercase tracking-wider font-semibold
+                               px-2 py-0.5 rounded bg-green-500/10 text-green-400 mb-1.5">
+                    Student
+                  </span>
+                  <p class="font-semibold text-white group-hover:text-[#4A90C4] transition-colors
+                             leading-snug mb-1" [innerHTML]="highlight(s.name)"></p>
+                  <p class="text-xs text-white/40 mb-2">
+                    {{ s.projectCount }} project{{ s.projectCount !== 1 ? 's' : '' }}
+                  </p>
+                  <div class="flex flex-wrap gap-1.5">
+                    <span *ngFor="let t of s.topics.slice(0, 5)"
+                          class="text-[10px] px-2 py-0.5 rounded-full font-medium
+                                 bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
+                      {{ t }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ── Courses ───────────────────────────────────────────────────── -->
+        <ng-container *ngIf="isActiveTab('all') || isActiveTab('courses')">
+          <div *ngIf="filteredCourses.length > 0">
+            <p *ngIf="isActiveTab('all')"
+               class="text-xs text-white/30 uppercase tracking-widest font-semibold mb-3">
+              Courses
+            </p>
+            <div class="space-y-3">
+              <div *ngFor="let c of filteredCourses"
+                   (click)="goToCourse(c)"
+                   class="bg-[#162338] border border-white/10 rounded-xl p-5
+                          flex gap-4 cursor-pointer hover:border-[#4A90C4]/30 transition-all group">
+                <div class="w-11 h-11 rounded-xl bg-yellow-500/10 flex items-center
+                            justify-center flex-shrink-0 text-yellow-400 font-bold text-xs font-playfair">
+                  {{ c.courseCode.slice(0, 4) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="inline-block text-[10px] uppercase tracking-wider font-semibold
+                               px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 mb-1.5">
+                    Course
+                  </span>
+                  <p class="font-semibold text-white group-hover:text-[#4A90C4] transition-colors
+                             leading-snug mb-1"
+                     [innerHTML]="highlight(c.courseCode + ' — ' + c.courseName)"></p>
+                  <p *ngIf="c.department" class="text-xs text-white/40">
+                    {{ c.department }}
+                    <span *ngIf="c.credits"> · {{ c.credits }} credits</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,122 @@
+<!-- frontend/src/app/features/events/events.html -->
+<app-nav></app-nav>
+
+<div class="min-h-screen bg-[#0D1B2E] text-white font-dm-sans">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <div class="bg-[#162338] border-b border-white/10 px-6 py-10">
+    <div class="max-w-5xl mx-auto">
+      <h1 class="text-3xl font-playfair font-bold text-white mb-1">Campus Events</h1>
+      <p class="text-white/50 text-sm">Browse academic events, club activities, and competitions</p>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-6 py-8">
+
+    <!-- ── Filters ───────────────────────────────────────────────────────────── -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+      <!-- Search -->
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilters()"
+          placeholder="Search events…"
+          class="w-full bg-[#162338] border border-white/10 rounded-lg pl-10 pr-4 py-2.5
+                 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#4A90C4]"/>
+      </div>
+
+      <!-- Category filter -->
+      <select
+        [(ngModel)]="selectedCategory"
+        (ngModelChange)="applyFilters()"
+        class="bg-[#162338] border border-white/10 rounded-lg px-4 py-2.5 text-sm
+               text-white focus:outline-none focus:border-[#4A90C4]">
+        <option value="">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat">
+          {{ getCategoryLabel(cat) }}
+        </option>
+      </select>
+
+      <!-- Clear -->
+      <button
+        *ngIf="searchTerm || selectedCategory"
+        (click)="clearFilters()"
+        class="px-4 py-2.5 text-sm text-white/50 hover:text-white border border-white/10
+               rounded-lg hover:border-white/30 transition-colors">
+        Clear
+      </button>
+    </div>
+
+    <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+    <div *ngIf="loading" class="flex justify-center py-20">
+      <div class="w-8 h-8 border-2 border-[#4A90C4] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- ── Error ─────────────────────────────────────────────────────────────── -->
+    <div *ngIf="error && !loading"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl p-4 text-[#C8102E] text-sm mb-6">
+      {{ error }}
+    </div>
+
+    <!-- ── Empty state ───────────────────────────────────────────────────────── -->
+    <div *ngIf="!loading && !error && filteredEvents.length === 0"
+         class="text-center py-20 text-white/40">
+      <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <p class="text-sm">No events found</p>
+    </div>
+
+    <!-- ── Event grid ─────────────────────────────────────────────────────────── -->
+    <div *ngIf="!loading && filteredEvents.length > 0"
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <div
+        *ngFor="let event of filteredEvents"
+        (click)="navigateToEvent(event.eventId)"
+        class="bg-[#162338] border border-white/10 rounded-xl p-5 cursor-pointer
+               hover:border-[#4A90C4]/50 hover:bg-[#1a2d4a] transition-all group">
+
+        <!-- Category + upcoming badge -->
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-medium px-2.5 py-1 rounded-full"
+                [ngClass]="getCategoryColor(event.category)">
+            {{ getCategoryLabel(event.category) }}
+          </span>
+          <span *ngIf="isUpcoming(event.eventDate)"
+                class="text-xs text-green-400 font-medium">
+            Upcoming
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h3 class="font-semibold text-white mb-2 group-hover:text-[#4A90C4] transition-colors leading-snug">
+          {{ event.title }}
+        </h3>
+
+        <!-- Description -->
+        <p *ngIf="event.description"
+           class="text-white/50 text-sm mb-4 line-clamp-2 leading-relaxed">
+          {{ event.description }}
+        </p>
+
+        <!-- Date -->
+        <div class="flex items-center gap-1.5 text-white/40 text-xs mt-auto">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          {{ formatDate(event.eventDate) }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

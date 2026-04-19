@@ -11,16 +11,6 @@ export interface User {
   primaryEmail?: string;
 }
 
-export interface Job {
-  jobId: number;
-  userId: number;
-  company: string;
-  title: string;
-  startDate: string;
-  endDate?: string;
-  description?: string;
-}
-
 export interface Social {
   socialId: number;
   userId: number;
@@ -89,7 +79,12 @@ export interface CourseEnrollment {
     department?: string;
     credits?: number;
   };
-  projects?: Project[];
+  student: {
+    userId: number;
+    name: string;
+    profileImageUrl?: string;
+  };
+  projects: Project[];
 }
 
 export interface CourseCatalog {
@@ -99,13 +94,50 @@ export interface CourseCatalog {
   department?: string;
   credits?: number;
   description?: string;
+  createdByUserId?: number;
 }
 
-export interface CourseEnrollmentEntry {
-  courseId: number;
-  semester: string;
-  year: number;
-  instructor?: string;
-  student: { userId: number; name: string; email?: string };
-  projects: { projectId: number; title: string; status: string; githubUrl?: string; demoUrl?: string }[];
+// ── Event interfaces ──────────────────────────────────────────────────────────
+
+export interface EventRegistration {
+  eventRegistrationId: number;
+  eventId: number;
+  userId: number;
+  name: string;
+  profileImageUrl?: string;
+  registeredAt: string;
+}
+
+export interface Award {
+  awardId: number;
+  eventId: number;
+  title: string;
+  description?: string;
+  awardedAt: string;
+}
+
+export interface EventMedia {
+  eventMediaId: number;
+  eventId: number;
+  mediaType: string; // 'image' | 'video' | 'link'
+  url: string;
+}
+
+export interface EventDetail {
+  eventId: number;
+  title: string;
+  description?: string;
+  category: string;
+  eventDate: string;
+  registrations: EventRegistration[];
+  media: EventMedia[];
+  awards: Award[];
+}
+
+export interface EventSummary {
+  eventId: number;
+  title: string;
+  description?: string;
+  category: string;
+  eventDate: string;
 }
