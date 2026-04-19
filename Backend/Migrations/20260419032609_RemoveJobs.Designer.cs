@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260419013458_RemoveJobs")]
+    [Migration("20260419032609_RemoveJobs")]
     partial class RemoveJobs
     {
         /// <inheritdoc />
@@ -205,41 +205,6 @@ namespace Backend.Migrations
                         .IsUnique();
 
                     b.ToTable("EventRegistrations");
-                });
-
-            modelBuilder.Entity("Backend.Models.Job", b =>
-                {
-                    b.Property<int>("JobId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobId"));
-
-                    b.Property<string>("Company")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("JobId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Job");
                 });
 
             modelBuilder.Entity("Backend.Models.Project", b =>
@@ -540,17 +505,6 @@ namespace Backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Backend.Models.Job", b =>
-                {
-                    b.HasOne("Backend.Models.User", "User")
-                        .WithMany("Jobs")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Backend.Models.Project", b =>
                 {
                     b.HasOne("Backend.Models.Course", "Course")
@@ -669,8 +623,6 @@ namespace Backend.Migrations
                     b.Navigation("EventRegistrations");
 
                     b.Navigation("Identities");
-
-                    b.Navigation("Jobs");
 
                     b.Navigation("Projects");
 
