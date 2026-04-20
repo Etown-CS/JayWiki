@@ -54,6 +54,11 @@ export const routes: Routes = [
     path: 'projects/:userId/:projectId',
     loadComponent: () => import('./features/my-projects/project-detail').then(m => m.ProjectDetail),
   },
+  {
+  path: 'dashboard/events',
+  loadComponent: () => import('./features/my-events/my-events').then(m => m.MyEvents),
+  canActivate: [authGuard],
+  },
 
   // ── Public course catalog ─────────────────────────────────────────────────
   {
@@ -73,6 +78,10 @@ export const routes: Routes = [
   {
     path: 'events/:id',
     loadComponent: () => import('./features/events/event-detail').then(m => m.EventDetail),
+  },
+  {
+  path: 'awards/:id',
+  loadComponent: () => import('./features/award-detail/award-detail').then(m => m.AwardDetail),
   },
 
   // ── Projects + Explore (public) ────────────────────────────────────────────

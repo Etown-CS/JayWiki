@@ -1,0 +1,112 @@
+<!-- frontend/src/app/features/award-detail/award-detail.html -->
+<div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
+  <app-nav></app-nav>
+
+  <div class="max-w-[720px] mx-auto px-6 py-10">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">Loading…</div>
+
+    <!-- Error -->
+    <div *ngIf="!loading && error" class="text-center py-24 text-[#C8102E] text-sm">{{ error }}</div>
+
+    <!-- Content -->
+    <ng-container *ngIf="!loading && !error && award">
+
+      <!-- Back button -->
+      <button (click)="goBack()"
+              class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
+                     transition-colors mb-6 cursor-pointer border-0 bg-transparent">
+        ← Back to Events
+      </button>
+
+      <!-- Award card -->
+      <div class="bg-[#162338] border border-white/[0.07] rounded-2xl overflow-hidden mb-5">
+
+        <!-- Gold accent bar -->
+        <div class="h-[3px]" style="background: linear-gradient(90deg, #F0C040, #C8102E)"></div>
+
+        <div class="p-8">
+
+          <!-- Trophy + title -->
+          <div class="flex items-start gap-5 mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-[#F0C040]/10 border border-[#F0C040]/20
+                        flex items-center justify-center shrink-0 text-[32px]">
+              🏆
+            </div>
+            <div>
+              <div class="text-[11px] text-[#F0C040]/70 uppercase tracking-[1px] font-semibold mb-1">Award</div>
+              <h1 class="font-playfair text-[28px] font-bold leading-snug">{{ award.title }}</h1>
+              <p class="text-[13px] text-[#7A9BBF] mt-1">{{ formatDate(award.awardedAt) }}</p>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div *ngIf="award.description"
+               class="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5 mb-6">
+            <p class="text-[14px] text-white/70 leading-relaxed">{{ award.description }}</p>
+          </div>
+
+          <!-- Details grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <!-- Recipient -->
+            <div *ngIf="award.recipient"
+                 class="bg-white/[0.02] border border-white/[0.07] rounded-xl p-5">
+              <div class="text-[11px] text-[#7A9BBF] uppercase tracking-[0.8px] font-semibold mb-3">
+                Recipient
+              </div>
+              <a [routerLink]="['/students', award.recipient.userId]"
+                 class="flex items-center gap-3 no-underline group">
+                <ng-container *ngIf="award.recipient.profileImageUrl; else recipientInitials">
+                  <img [src]="award.recipient.profileImageUrl"
+                       [alt]="award.recipient.name"
+                       class="w-10 h-10 rounded-full object-cover ring-2 ring-white/10
+                              group-hover:ring-[#4A90C4] transition-all" />
+                </ng-container>
+                <ng-template #recipientInitials>
+                  <div class="w-10 h-10 rounded-full bg-[#4A90C4]/20 ring-2 ring-white/10
+                              group-hover:ring-[#4A90C4] transition-all
+                              flex items-center justify-center">
+                    <span class="text-sm font-semibold text-[#4A90C4]">
+                      {{ getInitials(award.recipient.name) }}
+                    </span>
+                  </div>
+                </ng-template>
+                <div>
+                  <div class="text-[14px] font-semibold group-hover:text-[#4A90C4] transition-colors">
+                    {{ award.recipient.name }}
+                  </div>
+                  <div class="text-[11px] text-[#7A9BBF]">View profile →</div>
+                </div>
+              </a>
+            </div>
+
+            <!-- Linked event -->
+            <div *ngIf="award.event"
+                 class="bg-white/[0.02] border border-white/[0.07] rounded-xl p-5">
+              <div class="text-[11px] text-[#7A9BBF] uppercase tracking-[0.8px] font-semibold mb-3">
+                Associated Event
+              </div>
+              <a [routerLink]="['/events', award.event.eventId]"
+                 class="flex flex-col gap-1.5 no-underline group">
+                <div class="flex items-center gap-2">
+                  <span [class]="'text-[10px] px-2 py-0.5 rounded-full capitalize ' + getCategoryColor(award.event.category)">
+                    {{ award.event.category }}
+                  </span>
+                </div>
+                <div class="text-[14px] font-semibold group-hover:text-[#4A90C4] transition-colors">
+                  {{ award.event.title }}
+                </div>
+                <div class="text-[12px] text-[#7A9BBF]">{{ formatDate(award.event.eventDate) }}</div>
+                <div class="text-[11px] text-[#4A90C4]">View event →</div>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+  </div>
+</div>

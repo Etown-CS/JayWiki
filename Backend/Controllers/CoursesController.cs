@@ -24,6 +24,7 @@ public class CoursesController : ProjectBaseController
         var courses = await _context.Courses
             .Where(c => c.UserId == userId)
             .Include(c => c.Catalog)
+            .Include(c => c.Projects)
             .Select(c => new
             {
                 c.CourseId,
@@ -38,7 +39,14 @@ public class CoursesController : ProjectBaseController
                     c.Catalog.CourseName,
                     c.Catalog.Department,
                     c.Catalog.Credits
-                }
+                },
+                Projects = c.Projects.Select(p => new
+                {
+                    p.ProjectId,
+                    p.Title,
+                    p.Status,
+                    p.ProjectType
+                })
             })
             .OrderByDescending(c => c.Year)
             .ThenBy(c => c.Semester)

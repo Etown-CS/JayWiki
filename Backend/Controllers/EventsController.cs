@@ -94,6 +94,34 @@ public class EventsController : ProjectBaseController
         });
     }
 
+    // ─── GET /api/users/{userId}/events ──────────────────────────────────────────
+    /// Returns all events the user is registered for, ordered by event date descending.
+    [HttpGet("/api/users/{userId}/events")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUserEvents(int userId)
+    {
+        var userExists = await _context.Users.AnyAsync(u => u.UserId == userId);
+        if (!userExists)
+            return NotFound(new { message = $"User {userId} not found." });
+
+        var events = await _context.EventRegistrations
+            .Where(r => r.UserId == userId)
+            .Include(r => r.Event)
+            .OrderByDescending(r => r.Event.EventDate)
+            .Select(r => new
+            {
+                r.Event.EventId,
+                r.Event.Title,
+                r.Event.Description,
+                r.Event.Category,
+                r.Event.EventDate,
+                r.RegisteredAt
+            })
+            .ToListAsync();
+
+        return Ok(events);
+    }
+
     // ─── POST /api/events ─────────────────────────────────────────────────────
     /// <summary>
     /// Create a new event. Requires instructor or admin privileges.

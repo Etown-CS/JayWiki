@@ -56,6 +56,8 @@ export interface Project {
   media?: ProjectMedia[];
 }
 
+// ── Award interfaces ─────────────────────────────────────────────────────────
+
 export interface Award {
   awardId: number;
   eventId?: number;   // optional — award may not be tied to an event
@@ -63,6 +65,24 @@ export interface Award {
   title: string;
   description?: string;
   awardedAt: string;
+}
+
+export interface AwardDetail {
+  awardId: number;
+  title: string;
+  description?: string;
+  awardedAt: string;
+  event?: {
+    eventId: number;
+    title: string;
+    category: string;
+    eventDate: string;
+  };
+  recipient?: {
+    userId: number;
+    name: string;
+    profileImageUrl?: string;
+  };
 }
 
 // ── Course interfaces ─────────────────────────────────────────────────────────
@@ -100,7 +120,12 @@ export interface CourseEnrollment {
     name: string;
     profileImageUrl?: string;
   };
-  projects: Project[];
+  projects: {
+    projectId: number;
+    title: string;
+    status: string;
+    projectType: string;
+  }[];
 }
 
 /**

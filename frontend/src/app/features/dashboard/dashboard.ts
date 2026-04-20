@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
-import { User, Social, Project, CourseEnrollment, EventSummary } from '../../core/models/models';
+import { User, Social, Project, CourseEnrollment, EventSummary, Award } from '../../core/models/models';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -28,6 +28,7 @@ export class Dashboard implements OnInit {
   projects: Project[]               = [];
   courses:  CourseEnrollment[]      = [];
   events:   EventSummary[]          = [];
+  awards: Award[] = [];
 
   // ── UI state ──────────────────────────────────────────────────────────────
   loading = true;
@@ -95,15 +96,15 @@ export class Dashboard implements OnInit {
           socials:  this.http.get<Social[]>         (`${base}/socials`,  { headers }).pipe(catchError(() => of([]))),
           projects: this.http.get<Project[]>        (`${base}/projects`, { headers }).pipe(catchError(() => of([]))),
           courses:  this.http.get<CourseEnrollment[]>(`${base}/courses`, { headers }).pipe(catchError(() => of([]))),
-          // GET /api/users/{id}/events — returns events the user is registered for.
-          // Falls back to [] silently if the endpoint hasn't been built yet.
           events:   this.http.get<EventSummary[]>   (`${base}/events`,  { headers }).pipe(catchError(() => of([]))),
+          awards: this.http.get<Award[]>(`${base}/awards`, { headers }).pipe(catchError(() => of([]))),
         })
       );
       this.socials  = results.socials;
       this.projects = results.projects;
       this.courses  = results.courses;
       this.events   = results.events;
+      this.awards   = results.awards;
 
     } catch {
       this.error = 'Failed to load profile. Please try again.';

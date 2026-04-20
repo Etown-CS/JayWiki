@@ -1,0 +1,108 @@
+<!-- frontend/src/app/features/my-events/my-events.html -->
+<div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
+  <app-nav></app-nav>
+
+  <div class="max-w-[1100px] mx-auto px-10 py-9">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] mb-6">
+      <span class="text-[#4A90C4] cursor-pointer hover:underline" routerLink="/dashboard">My Portfolio</span>
+      <span class="text-white/20">›</span>
+      <span>Events</span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-7">
+      <div>
+        <h1 class="font-playfair text-[32px] font-bold">My Events</h1>
+        <p class="text-[14px] text-[#7A9BBF] mt-1.5 font-light">
+          {{ events.length }} registered event{{ events.length !== 1 ? 's' : '' }}
+        </p>
+      </div>
+      <a routerLink="/events"
+         class="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium
+                border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all">
+        Browse Events →
+      </a>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="unregisterError"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-5 py-3 text-[13px] text-[#f28b9b] mb-4">
+      {{ unregisterError }}
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">Loading events…</div>
+
+    <!-- General error -->
+    <div *ngIf="!loading && error"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4 text-[13px] text-[#f28b9b]">
+      {{ error }}
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && !error && events.length === 0"
+         class="text-center py-24 text-[#7A9BBF]">
+      <div class="text-[40px] mb-4">📅</div>
+      <div class="text-[15px] font-medium mb-2 text-white/60">No events registered</div>
+      <div class="text-[13px] mb-5">Register for campus events to track them here</div>
+      <a routerLink="/events"
+         class="inline-block px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white
+                bg-[#4A90C4] hover:bg-[#5ba3d9] transition-colors">
+        Browse Events
+      </a>
+    </div>
+
+    <!-- Events list -->
+    <div *ngIf="!loading && !error && events.length > 0"
+         class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden">
+      <div *ngFor="let e of events; let last = last"
+           [class]="'flex items-center gap-5 px-6 py-5 hover:bg-white/[0.02] transition-colors ' +
+                    (last ? '' : 'border-b border-white/[0.07]')">
+
+        <!-- Category dot -->
+        <div class="w-3 h-3 rounded-full shrink-0"
+             [ngClass]="{
+               'bg-[#4A90C4]': e.category === 'academic',
+               'bg-[#2ECC71]': e.category === 'club',
+               'bg-[#F0C040]': e.category === 'sport',
+               'bg-white/30':  e.category === 'other'
+             }"></div>
+
+        <!-- Event info -->
+        <div class="flex-1 min-w-0 cursor-pointer" (click)="openEvent(e.eventId)">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="text-[14px] font-semibold hover:text-[#4A90C4] transition-colors truncate">
+              {{ e.title }}
+            </span>
+            <span *ngIf="isUpcoming(e.eventDate)"
+                  class="text-[10px] px-2 py-0.5 rounded-full bg-[#2ECC71]/10 text-[#2ECC71] shrink-0">
+              Upcoming
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span [class]="'text-[10px] px-2 py-0.5 rounded-full capitalize ' + getCategoryColor(e.category)">
+              {{ e.category }}
+            </span>
+            <span class="text-[12px] text-[#7A9BBF]">{{ formatDate(e.eventDate) }}</span>
+          </div>
+        </div>
+
+        <!-- Unregister -->
+        <button (click)="unregister(e.eventId)"
+                [disabled]="unregisteringId === e.eventId"
+                class="shrink-0 px-3 py-1.5 rounded-lg text-[12px] border border-white/[0.07]
+                       text-[#7A9BBF] hover:text-[#C8102E] hover:border-[#C8102E]/40
+                       transition-all cursor-pointer bg-transparent disabled:opacity-50">
+          {{ unregisteringId === e.eventId ? 'Removing…' : 'Unregister' }}
+        </button>
+
+        <!-- Arrow to detail -->
+        <span class="text-[#7A9BBF] text-[18px] shrink-0 cursor-pointer"
+              (click)="openEvent(e.eventId)">›</span>
+      </div>
+    </div>
+
+  </div>
+</div>

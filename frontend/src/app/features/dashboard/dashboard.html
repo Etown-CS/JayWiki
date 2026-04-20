@@ -3,17 +3,14 @@
 
   <app-nav></app-nav>
 
-  <!-- Loading -->
   <div *ngIf="loading" class="flex items-center justify-center min-h-[60vh]">
     <div class="text-[#7A9BBF] text-sm">Loading profile…</div>
   </div>
 
-  <!-- Error -->
   <div *ngIf="!loading && error" class="flex items-center justify-center min-h-[60vh]">
     <div class="text-[#C8102E] text-sm">{{ error }}</div>
   </div>
 
-  <!-- Profile -->
   <div *ngIf="!loading && !error && user"
        class="max-w-[1300px] mx-auto px-6 md:px-10 py-9">
 
@@ -21,40 +18,30 @@
     <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] p-6 md:p-8 mb-6
                 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
 
-      <!-- Avatar -->
       <div class="shrink-0">
         <ng-container *ngIf="user.profileImageUrl; else headerInitials">
-          <img [src]="user.profileImageUrl"
-               [alt]="user.name"
+          <img [src]="user.profileImageUrl" [alt]="user.name"
                class="w-24 h-24 rounded-full object-cover ring-4 ring-white/10" />
         </ng-container>
         <ng-template #headerInitials>
           <div class="w-24 h-24 rounded-full ring-4 ring-white/10
                       bg-gradient-to-br from-[#4A90C4]/30 to-[#C8102E]/20
                       flex items-center justify-center">
-            <span class="font-playfair text-3xl font-bold text-white/80">
-              {{ getUserInitials() }}
-            </span>
+            <span class="font-playfair text-3xl font-bold text-white/80">{{ getUserInitials() }}</span>
           </div>
         </ng-template>
       </div>
 
-      <!-- Name / role / socials -->
       <div class="flex-1 min-w-0">
         <h1 class="font-playfair text-2xl md:text-3xl font-bold">{{ user.name }}</h1>
-
         <div class="mt-2">
           <span class="text-[11px] px-2.5 py-0.5 rounded-full capitalize
                        bg-[#4A90C4]/15 text-[#4A90C4] border border-[#4A90C4]/20">
             {{ user.role }}
           </span>
         </div>
-
         <div *ngIf="socials.length > 0" class="flex flex-wrap gap-3 mt-3">
-          <a *ngFor="let s of socials"
-             [href]="s.url"
-             target="_blank"
-             rel="noopener noreferrer"
+          <a *ngFor="let s of socials" [href]="s.url" target="_blank" rel="noopener noreferrer"
              class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white transition-colors">
             <span>{{ getSocialIcon(s.platform) }}</span>
             <span>{{ s.username || s.platform }}</span>
@@ -62,30 +49,34 @@
         </div>
       </div>
 
-      <!-- Stat pills + Edit button -->
+      <!-- Stat pills — Projects | Courses | Technologies | Events | Awards (when > 0) -->
       <div class="shrink-0 flex flex-col items-end gap-3">
-        <button *ngIf="isOwnProfile"
-                (click)="openEdit()"
-                class="px-4 py-1.5 rounded-lg text-[12px] font-medium
-                       border border-white/[0.07] text-[#7A9BBF]
-                       hover:text-white hover:border-white/20 transition-all cursor-pointer">
+        <button *ngIf="isOwnProfile" (click)="openEdit()"
+                class="px-4 py-1.5 rounded-lg text-[12px] font-medium border border-white/[0.07]
+                       text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
           Edit Profile
         </button>
-        <div class="flex gap-2">
-          <div class="text-center bg-white/[0.03] border border-white/[0.07]
-                      rounded-[10px] px-4 py-2.5 min-w-[64px]">
+        <div class="flex gap-2 flex-wrap justify-end">
+          <div class="text-center bg-white/[0.03] border border-white/[0.07] rounded-[10px] px-4 py-2.5 min-w-[64px]">
             <div class="font-playfair text-[20px] font-bold">{{ projects.length }}</div>
             <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Projects</div>
           </div>
-          <div class="text-center bg-white/[0.03] border border-white/[0.07]
-                      rounded-[10px] px-4 py-2.5 min-w-[64px]">
+          <div class="text-center bg-white/[0.03] border border-white/[0.07] rounded-[10px] px-4 py-2.5 min-w-[64px]">
             <div class="font-playfair text-[20px] font-bold">{{ courses.length }}</div>
             <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Courses</div>
           </div>
-          <div class="text-center bg-white/[0.03] border border-white/[0.07]
-                      rounded-[10px] px-4 py-2.5 min-w-[64px]">
+          <div class="text-center bg-white/[0.03] border border-white/[0.07] rounded-[10px] px-4 py-2.5 min-w-[64px]">
+            <div class="font-playfair text-[20px] font-bold">{{ techTopics.length }}</div>
+            <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Technologies</div>
+          </div>
+          <div class="text-center bg-white/[0.03] border border-white/[0.07] rounded-[10px] px-4 py-2.5 min-w-[64px]">
             <div class="font-playfair text-[20px] font-bold">{{ events.length }}</div>
             <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Events</div>
+          </div>
+          <div *ngIf="awards.length > 0"
+               class="text-center bg-[#F0C040]/[0.08] border border-[#F0C040]/20 rounded-[10px] px-4 py-2.5 min-w-[64px]">
+            <div class="font-playfair text-[20px] font-bold text-[#F0C040]">{{ awards.length }}</div>
+            <div class="text-[10px] text-[#F0C040]/70 uppercase tracking-[0.5px] mt-0.5">Awards</div>
           </div>
         </div>
       </div>
@@ -106,18 +97,11 @@
                 {{ projects.length }} project{{ projects.length !== 1 ? 's' : '' }}
               </span>
             </div>
-            <a *ngIf="isOwnProfile"
-               routerLink="/dashboard/projects"
-               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">
-              Manage →
-            </a>
+            <a *ngIf="isOwnProfile" routerLink="/dashboard/projects"
+               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">Manage →</a>
           </div>
-
           <div *ngIf="projects.length === 0"
-               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">
-            No projects added yet.
-          </div>
-
+               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">No projects added yet.</div>
           <div *ngFor="let p of projects; let last = last"
                [class]="'py-3.5 ' + (last ? '' : 'border-b border-white/[0.07]')">
             <div class="flex items-start justify-between gap-3">
@@ -126,29 +110,16 @@
                    class="text-[14px] font-semibold hover:text-[#4A90C4] transition-colors truncate block">
                   {{ p.title }}
                 </a>
-                <p *ngIf="p.description"
-                   class="text-[12px] text-[#7A9BBF] mt-0.5 line-clamp-1">
-                  {{ p.description }}
-                </p>
-                <div *ngIf="p.topics && p.topics.length > 0"
-                     class="flex flex-wrap gap-1 mt-1.5">
+                <p *ngIf="p.description" class="text-[12px] text-[#7A9BBF] mt-0.5 line-clamp-1">{{ p.description }}</p>
+                <div *ngIf="p.topics && p.topics.length > 0" class="flex flex-wrap gap-1 mt-1.5">
                   <span *ngFor="let t of p.topics.slice(0, 4)"
-                        class="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.05] text-[#7A9BBF]">
-                    {{ t.name }}
-                  </span>
-                  <span *ngIf="p.topics.length > 4"
-                        class="text-[10px] text-[#7A9BBF]/60">
-                    +{{ p.topics.length - 4 }} more
-                  </span>
+                        class="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.05] text-[#7A9BBF]">{{ t.name }}</span>
+                  <span *ngIf="p.topics.length > 4" class="text-[10px] text-[#7A9BBF]/60">+{{ p.topics.length - 4 }} more</span>
                 </div>
               </div>
               <div class="flex flex-col items-end gap-1.5 shrink-0">
-                <span [class]="'text-[10px] px-2 py-0.5 rounded-full font-medium ' + getStatusClass(p.status)">
-                  {{ p.status }}
-                </span>
-                <span class="text-[10px] text-[#7A9BBF]/60">
-                  {{ formatDateRange(p.startDate, p.endDate) }}
-                </span>
+                <span [class]="'text-[10px] px-2 py-0.5 rounded-full font-medium ' + getStatusClass(p.status)">{{ p.status }}</span>
+                <span class="text-[10px] text-[#7A9BBF]/60">{{ formatDateRange(p.startDate, p.endDate) }}</span>
               </div>
             </div>
           </div>
@@ -159,22 +130,13 @@
           <div class="flex items-center justify-between mb-4">
             <div class="text-[13px] font-semibold">
               🎓 Courses
-              <span class="ml-1.5 text-[11px] font-normal text-[#7A9BBF]">
-                {{ courses.length }} enrolled
-              </span>
+              <span class="ml-1.5 text-[11px] font-normal text-[#7A9BBF]">{{ courses.length }} enrolled</span>
             </div>
-            <a *ngIf="isOwnProfile"
-               routerLink="/dashboard/courses"
-               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">
-              Manage →
-            </a>
+            <a *ngIf="isOwnProfile" routerLink="/dashboard/courses"
+               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">Manage →</a>
           </div>
-
           <div *ngIf="courses.length === 0"
-               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">
-            No courses enrolled yet.
-          </div>
-
+               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">No courses enrolled yet.</div>
           <div *ngFor="let c of courses; let last = last"
                [class]="'py-3.5 ' + (last ? '' : 'border-b border-white/[0.07]')">
             <div class="flex items-center justify-between gap-3">
@@ -184,15 +146,11 @@
                   {{ c.course.courseCode }} — {{ c.course.courseName }}
                 </a>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[12px] text-[#7A9BBF]">
-                    {{ c.semester }} {{ c.year }}
-                  </span>
-                  <span *ngIf="c.instructor" class="text-[12px] text-[#7A9BBF]/60">
-                    · {{ c.instructor }}
-                  </span>
+                  <span class="text-[12px] text-[#7A9BBF]">{{ c.semester }} {{ c.year }}</span>
+                  <span *ngIf="c.instructor" class="text-[12px] text-[#7A9BBF]/60">· {{ c.instructor }}</span>
                 </div>
               </div>
-              <div class="shrink-0 text-right">
+              <div class="shrink-0">
                 <span class="text-[11px] text-[#7A9BBF]/60">
                   {{ c.projects.length }} project{{ c.projects.length !== 1 ? 's' : '' }}
                 </span>
@@ -206,43 +164,26 @@
           <div class="flex items-center justify-between mb-4">
             <div class="text-[13px] font-semibold">
               📅 Events
-              <span class="ml-1.5 text-[11px] font-normal text-[#7A9BBF]">
-                {{ events.length }} registered
-              </span>
+              <span class="ml-1.5 text-[11px] font-normal text-[#7A9BBF]">{{ events.length }} registered</span>
             </div>
-            <a routerLink="/events"
-               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">
-              Browse →
-            </a>
+            <a *ngIf="isOwnProfile" routerLink="/dashboard/events"
+               class="text-[11px] text-[#4A90C4] hover:text-white transition-colors">Manage →</a>
           </div>
-
           <div *ngIf="events.length === 0"
-               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">
-            No events registered yet.
-          </div>
-
+               class="py-6 text-center text-[13px] text-[#7A9BBF]/60 italic">No events registered yet.</div>
           <div *ngFor="let e of events; let last = last"
                [class]="'py-3.5 ' + (last ? '' : 'border-b border-white/[0.07]')">
             <div class="flex items-center justify-between gap-3">
               <div class="flex-1 min-w-0">
                 <a [routerLink]="['/events', e.eventId]"
-                   class="text-[14px] font-semibold hover:text-[#4A90C4] transition-colors truncate block">
-                  {{ e.title }}
-                </a>
+                   class="text-[14px] font-semibold hover:text-[#4A90C4] transition-colors truncate block">{{ e.title }}</a>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span [class]="'text-[10px] px-2 py-0.5 rounded-full ' + getCategoryClass(e.category)">
-                    {{ e.category }}
-                  </span>
-                  <span class="text-[12px] text-[#7A9BBF]">
-                    {{ formatDate(e.eventDate) }}
-                  </span>
+                  <span [class]="'text-[10px] px-2 py-0.5 rounded-full ' + getCategoryClass(e.category)">{{ e.category }}</span>
+                  <span class="text-[12px] text-[#7A9BBF]">{{ formatDate(e.eventDate) }}</span>
                 </div>
               </div>
               <div *ngIf="isUpcoming(e.eventDate)" class="shrink-0">
-                <span class="text-[10px] px-2 py-0.5 rounded-full
-                             bg-[#2ECC71]/10 text-[#2ECC71]">
-                  Upcoming
-                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#2ECC71]/10 text-[#2ECC71]">Upcoming</span>
               </div>
             </div>
           </div>
@@ -253,25 +194,47 @@
       <!-- RIGHT SIDEBAR -->
       <div class="space-y-4">
 
-        <!-- Tech cloud -->
+        <!-- Technologies — count in header -->
         <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5">
-          <div class="text-[13px] font-semibold mb-3.5">🛠 Technologies</div>
-          <div *ngIf="techTopics.length === 0"
-               class="text-[12px] text-[#7A9BBF]/60 italic">
+          <div class="flex items-center justify-between mb-3.5">
+            <div class="text-[13px] font-semibold">🛠 Technologies</div>
+            <span class="text-[11px] text-[#7A9BBF]">
+              {{ techTopics.length }} topic{{ techTopics.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+          <div *ngIf="techTopics.length === 0" class="text-[12px] text-[#7A9BBF]/60 italic">
             Add topics to your projects to see your tech stack here.
           </div>
           <div class="flex flex-wrap gap-1.5">
             <span *ngFor="let t of techTopics"
                   [class]="'text-[11px] px-2.5 py-1 rounded-full border ' +
-                    (t.hot
-                      ? 'bg-[#4A90C4]/15 border-[#4A90C4]/30 text-[#4A90C4]'
-                      : 'bg-white/[0.03] border-white/[0.07] text-[#7A9BBF]')">
+                    (t.hot ? 'bg-[#4A90C4]/15 border-[#4A90C4]/30 text-[#4A90C4]'
+                           : 'bg-white/[0.03] border-white/[0.07] text-[#7A9BBF]')">
               {{ t.name }}
             </span>
           </div>
         </div>
 
-        <!-- Account info -->
+        <!-- Awards — always shown -->
+        <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5">
+          <div class="text-[13px] font-semibold mb-3.5">🏆 Awards</div>
+          <div *ngIf="awards.length === 0" class="text-[12px] text-[#7A9BBF]/60 italic">No awards yet.</div>
+          <div class="space-y-2">
+            <a *ngFor="let a of awards"
+               [routerLink]="['/awards', a.awardId]"
+               class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-transparent
+                      hover:bg-[#F0C040]/5 hover:border-[#F0C040]/20 transition-all block no-underline">
+              <div class="w-8 h-8 rounded-lg bg-[#F0C040]/10 flex items-center justify-center shrink-0 text-[14px]">🥇</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-white truncate">{{ a.title }}</div>
+                <div *ngIf="a.description" class="text-[11px] text-[#7A9BBF] mt-0.5 line-clamp-1">{{ a.description }}</div>
+                <div class="text-[10px] text-[#7A9BBF]/60 mt-0.5">{{ formatDate(a.awardedAt) }}</div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Account -->
         <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5">
           <div class="text-[13px] font-semibold mb-3.5">🔐 Account</div>
           <div class="text-[12px] text-[#7A9BBF] space-y-2">
@@ -294,67 +257,44 @@
   <div *ngIf="isOwnProfile && isEditMode"
        class="fixed inset-0 z-50 flex items-center justify-center p-4"
        style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px)">
-
-    <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] p-7
-                w-full max-w-md shadow-2xl">
+    <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] p-7 w-full max-w-md shadow-2xl">
       <h2 class="font-playfair text-xl font-bold mb-5">Edit Profile</h2>
-
-      <!-- Avatar preview -->
       <div class="flex items-center gap-4 mb-5">
         <ng-container *ngIf="previewUrl || user?.profileImageUrl; else editInitials">
-          <img [src]="previewUrl || user!.profileImageUrl"
-               alt="Avatar preview"
+          <img [src]="previewUrl || user!.profileImageUrl" alt="Avatar preview"
                class="w-16 h-16 rounded-full object-cover ring-2 ring-white/20" />
         </ng-container>
         <ng-template #editInitials>
           <div class="w-16 h-16 rounded-full ring-2 ring-white/20
                       bg-gradient-to-br from-[#4A90C4]/30 to-[#C8102E]/20
                       flex items-center justify-center">
-            <span class="font-playfair text-xl font-bold text-white/80">
-              {{ getUserInitials() }}
-            </span>
+            <span class="font-playfair text-xl font-bold text-white/80">{{ getUserInitials() }}</span>
           </div>
         </ng-template>
-
         <div>
           <label class="block text-[12px] text-[#7A9BBF] mb-1">Profile photo</label>
-          <input type="file"
-                 accept="image/jpeg,image/png,image/gif,image/webp"
-                 (change)="onFileSelected($event)"
-                 #fileInput
-                 class="hidden" />
+          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                 (change)="onFileSelected($event)" #fileInput class="hidden" />
           <button (click)="fileInput.click()"
                   class="text-[12px] px-3 py-1.5 rounded-lg border border-white/[0.07]
                          text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all">
             Choose image
           </button>
-          <p *ngIf="selectedFile"
-             class="text-[11px] text-[#7A9BBF] mt-1 truncate max-w-[160px]">
-            {{ selectedFile.name }}
-          </p>
+          <p *ngIf="selectedFile" class="text-[11px] text-[#7A9BBF] mt-1 truncate max-w-[160px]">{{ selectedFile.name }}</p>
         </div>
       </div>
-
-      <!-- Name -->
       <label class="block text-[12px] text-[#7A9BBF] mb-1">Display name</label>
-      <input [(ngModel)]="editName"
-             type="text"
-             placeholder="Your name"
+      <input [(ngModel)]="editName" type="text" placeholder="Your name"
              class="w-full bg-[#0D1B2E] border border-white/[0.07] rounded-lg px-3 py-2
                     text-sm text-white placeholder-[#7A9BBF]/40 outline-none
                     focus:border-[#4A90C4]/50 transition-colors mb-4" />
-
       <p *ngIf="editError" class="text-[12px] text-[#C8102E] mb-3">{{ editError }}</p>
-
       <div class="flex gap-3 justify-end">
-        <button (click)="closeEdit()"
-                [disabled]="editSaving"
-                class="px-4 py-2 rounded-lg text-sm text-[#7A9BBF]
-                       hover:text-white transition-colors disabled:opacity-50">
+        <button (click)="closeEdit()" [disabled]="editSaving"
+                class="px-4 py-2 rounded-lg text-sm text-[#7A9BBF] hover:text-white transition-colors disabled:opacity-50">
           Cancel
         </button>
-        <button (click)="saveProfile()"
-                [disabled]="editSaving"
+        <button (click)="saveProfile()" [disabled]="editSaving"
                 class="px-5 py-2 rounded-lg text-sm font-medium bg-[#4A90C4]
                        hover:bg-[#5ba3d9] transition-colors disabled:opacity-60">
           {{ editSaving ? 'Saving…' : 'Save Changes' }}
