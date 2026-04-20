@@ -276,6 +276,29 @@ public class AwardsController : ProjectBaseController
             award.AwardedAt
         });
     }
+
+    // ─── Delete /api/users/{userId}/awards/{id} ─────────────────────────────────────
+    [HttpDelete("/api/users/{userId}/awards/{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteUserAward(int userId, int id)
+    {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized(new { message = "User not found." });
+
+        if (!await IsInstructorOrAdminAsync(currentUser.UserId))
+            return Forbid();
+
+        var award = await _context.Awards
+            .FirstOrDefaultAsync(a => a.AwardId == id && a.UserId == userId);
+
+        if (award == null)
+            return NotFound(new { message = $"Award {id} not found for user {userId}." });
+
+        _context.Awards.Remove(award);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
 
 // ─── Request DTOs ─────────────────────────────────────────────────────────────

@@ -12,11 +12,12 @@ import { environment } from '../../../environments/environment';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { NavComponent } from '../../core/nav/nav';
+import { AdminPanel } from './admin-panel';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, NavComponent],
+  imports: [CommonModule, FormsModule, RouterLink, NavComponent, AdminPanel],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
