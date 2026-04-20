@@ -13,11 +13,9 @@ public class ProjectsController : ProjectBaseController
     public ProjectsController(ApplicationDbContext context) : base(context) { }
 
     // ─── GET /api/projects ────────────────────────────────────────────────────
-    /// <summary>
     /// Returns all projects across all users with owner name and topics embedded.
     /// Used by the Explore page to avoid N+1 per-user fetches.
     /// Supports optional ?status= and ?type= filters.
-    /// </summary>
     [HttpGet("/api/projects")]
     [AllowAnonymous]
     public async Task<IActionResult> GetAllProjects(
@@ -204,6 +202,26 @@ public class ProjectsController : ProjectBaseController
             .ToListAsync();
 
         return Ok(projects);
+    }
+
+    // ─── GET /api/projects/trending-topics ───────────────────────────────────────
+    /// <summary>
+    /// Returns the top N most-used topic names across all projects, ordered by frequency.
+    /// Used by the Explore page to populate the trending technologies section.
+    /// </summary>
+    [HttpGet("/api/projects/trending-topics")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTrendingTopics([FromQuery] int limit = 20)
+    {
+        var topics = await _context.Topics
+            .GroupBy(t => t.Name)
+            .Select(g => new { Name = g.Key, Count = g.Count() })
+            .OrderByDescending(g => g.Count)
+            .Take(limit)
+            .Select(g => g.Name)
+            .ToListAsync();
+
+        return Ok(topics);
     }
 
     // ─── POST /api/users/{userId}/projects ────────────────────────────────────

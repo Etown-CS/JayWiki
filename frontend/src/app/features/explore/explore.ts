@@ -51,9 +51,13 @@ export class Explore implements OnInit {
   public activeTab: ResultType = 'all';
   hasSearched          = false;
 
+  // ── Filters ──────────────────────────────────────────────────────────────
   selectedStatuses: string[] = ['active', 'completed', 'archived'];
   selectedTypes:    string[] = ['academic', 'research', 'club', 'personal'];
+  selectedYear: number | null = null;
+  availableYears: number[]    = [];
 
+  // ── Data ─────────────────────────────────────────────────────────────────
   private allProjects: ProjectSummary[] = [];
   private allStudents: StudentResult[]  = [];
   private allCourses:  CourseResult[]   = [];
@@ -61,6 +65,9 @@ export class Explore implements OnInit {
   filteredProjects: ProjectSummary[] = [];
   filteredStudents: StudentResult[]  = [];
   filteredCourses:  CourseResult[]   = [];
+
+  // Populated from GET /api/projects/trending-topics
+  trendingTags: string[] = [];
 
   loading   = true;
   loadError = '';
@@ -70,12 +77,6 @@ export class Explore implements OnInit {
     { value: 'projects', label: 'Projects'    },
     { value: 'students', label: 'Students'    },
     { value: 'courses',  label: 'Courses'     },
-  ];
-
-  readonly trendingTags = [
-    'Angular', 'C# / .NET', 'Azure', 'Python', 'React',
-    'Machine Learning', 'TypeScript', 'Docker', 'PostgreSQL',
-    'Node.js', 'Java', 'Rust', 'IoT', 'TensorFlow',
   ];
 
   readonly statuses = ['active', 'completed', 'archived'];
@@ -94,11 +95,11 @@ export class Explore implements OnInit {
     if (q) { this.searchTerm = q; this.runSearch(); }
   }
 
-  // ── Data loading — single call per resource type, no N+1 ───────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   private async loadAllData(): Promise<void> {
     try {
-      const [projects, users, courses] = await firstValueFrom(
+      const [projects, users, courses, trendingTopics] = await firstValueFrom(
         forkJoin([
           this.http.get<ProjectSummary[]>(`${environment.apiBaseUrl}/api/projects`)
             .pipe(catchError(() => of([] as ProjectSummary[]))),
@@ -106,13 +107,17 @@ export class Explore implements OnInit {
             .pipe(catchError(() => of([]))),
           this.http.get<CourseResult[]>(`${environment.apiBaseUrl}/api/courses`)
             .pipe(catchError(() => of([] as CourseResult[]))),
+          // DB-level aggregation — far more efficient than client-side counting
+          this.http.get<string[]>(`${environment.apiBaseUrl}/api/projects/trending-topics?limit=20`)
+            .pipe(catchError(() => of([] as string[]))),
         ])
       );
 
-      this.allProjects = projects;
-      this.allCourses  = courses;
+      this.allProjects  = projects;
+      this.allCourses   = courses;
+      this.trendingTags = trendingTopics;
 
-      // Build student list from users + aggregate topics from projects
+      // Build student list with topic aggregation
       this.allStudents = users.map((u: any) => {
         const userProjects = projects.filter(p => p.userId === u.userId);
         const allTopics    = userProjects.flatMap(p => p.topics.map(t => t.name));
@@ -125,6 +130,13 @@ export class Explore implements OnInit {
           topics:          uniqueTopics,
         };
       });
+
+      // Derive available years from project start dates
+      const years = projects
+        .map(p => p.startDate ? new Date(p.startDate).getFullYear() : null)
+        .filter((y): y is number => y !== null);
+      this.availableYears = [...new Set(years)].sort((a, b) => b - a);
+
     } catch {
       this.loadError = 'Failed to load data. Search may be limited.';
     } finally {
@@ -133,11 +145,18 @@ export class Explore implements OnInit {
     }
   }
 
-  // ── Search ──────────────────────────────────────────────────────────────────
+  // ── Search ────────────────────────────────────────────────────────────────
 
   runSearch(): void {
     const term = this.searchTerm.trim().toLowerCase();
-    this.hasSearched = true;
+      // Don't run search on empty input
+      if (!term) {
+        this.hasSearched = false;
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.hasSearched = true;
 
     if (!term) {
       this.filteredProjects = [];
@@ -147,16 +166,21 @@ export class Explore implements OnInit {
       return;
     }
 
-    this.filteredProjects = this.allProjects.filter(p =>
-      this.selectedStatuses.includes(p.status) &&
-      this.selectedTypes.includes(p.projectType) &&
-      (
+    this.filteredProjects = this.allProjects.filter(p => {
+      const statusOk = this.selectedStatuses.includes(p.status);
+      const typeOk   = this.selectedTypes.includes(p.projectType);
+      const yearOk   = this.selectedYear === null
+        ? true
+        : p.startDate
+          ? new Date(p.startDate).getFullYear() === this.selectedYear
+          : false;
+      const textOk   =
         p.title.toLowerCase().includes(term) ||
         (p.description ?? '').toLowerCase().includes(term) ||
         p.topics.some(t => t.name.toLowerCase().includes(term)) ||
-        p.ownerName.toLowerCase().includes(term)
-      )
-    );
+        p.ownerName.toLowerCase().includes(term);
+      return statusOk && typeOk && yearOk && textOk;
+    });
 
     this.filteredStudents = this.allStudents.filter(s =>
       s.name.toLowerCase().includes(term) ||
@@ -183,7 +207,7 @@ export class Explore implements OnInit {
 
   setTab(value: ResultType): void { this.activeTab = value; }
 
-  // ── Facet toggles ───────────────────────────────────────────────────────────
+  // ── Facet toggles ─────────────────────────────────────────────────────────
 
   toggleStatus(status: string): void {
     this.selectedStatuses = this.selectedStatuses.includes(status)
@@ -199,7 +223,24 @@ export class Explore implements OnInit {
     if (this.hasSearched) this.runSearch();
   }
 
-  // ── Counts ──────────────────────────────────────────────────────────────────
+  selectYear(year: number | null): void {
+    this.selectedYear = year;
+    if (this.hasSearched) this.runSearch();
+  }
+
+  resetFilters(): void {
+    this.searchTerm       = '';
+    this.hasSearched      = false;
+    this.selectedStatuses = ['active', 'completed', 'archived'];
+    this.selectedTypes    = ['academic', 'research', 'club', 'personal'];
+    this.selectedYear     = null;
+    this.filteredProjects = [];
+    this.filteredStudents = [];
+    this.filteredCourses  = [];
+    this.cdr.detectChanges();
+  }
+
+  // ── Counts ────────────────────────────────────────────────────────────────
 
   get totalResults(): number {
     return this.filteredProjects.length + this.filteredStudents.length + this.filteredCourses.length;
@@ -208,13 +249,13 @@ export class Explore implements OnInit {
   get studentCount(): number { return this.filteredStudents.length; }
   get courseCount():  number { return this.filteredCourses.length;  }
 
-  // ── Navigation ──────────────────────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────────────────
 
-  goToProject(p: ProjectSummary): void { this.router.navigate(['/projects', p.projectId]); }
+  goToProject(p: ProjectSummary): void { this.router.navigate(['/projects', p.userId, p.projectId]); }
   goToStudent(s: StudentResult):  void { this.router.navigate(['/students', s.userId]);    }
   goToCourse(c: CourseResult):    void { this.router.navigate(['/courses', c.catalogId]);  }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   getInitials(name: string): string {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -250,8 +291,6 @@ export class Explore implements OnInit {
     }
   }
 
-  // Escape HTML special characters before inserting user-derived text into
-  // innerHTML — prevents markup injection even from trusted API responses.
   private escapeHtml(text: string): string {
     return text
       .replace(/&/g,  '&amp;')

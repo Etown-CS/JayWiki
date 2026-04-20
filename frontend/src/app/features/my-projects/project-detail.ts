@@ -4,7 +4,7 @@
 //   /projects/:userId/:projectId     → public view  (isOwnProject = false, read-only)
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavComponent } from '../../core/nav/nav';
@@ -33,6 +33,7 @@ export class ProjectDetail implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
+    private location: Location,
   ) {}
 
   ngOnInit(): void {
@@ -110,10 +111,6 @@ export class ProjectDetail implements OnInit {
   }
 
   goBack(): void {
-    if (this.isOwnProject) {
-      this.router.navigate(['/dashboard/projects']);
-    } else {
-      this.router.navigate(['/projects']);
-    }
+    this.location.back();
   }
 }
