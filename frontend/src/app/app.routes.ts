@@ -67,7 +67,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses/:id',
-    loadComponent: () => import('./features/courses/courses').then(m => m.Courses),
+    loadComponent: () => import('./features/courses/course-catalog-detail').then(m => m.CourseCatalogDetail),
   },
 
   // ── Events (public) ───────────────────────────────────────────────────────

@@ -1,0 +1,173 @@
+<!-- frontend/src/app/features/courses/course-catalog-detail.html -->
+<div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
+  <app-nav></app-nav>
+
+  <div class="max-w-[1300px] mx-auto px-6 md:px-10 py-9">
+
+    <!-- Back -->
+    <button (click)="goBack()"
+            class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
+                   transition-colors mb-6 cursor-pointer border-0 bg-transparent">
+      ← Back to Courses
+    </button>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">
+      Loading course…
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="!loading && error"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4
+                text-[13px] text-[#f28b9b]">
+      {{ error }}
+    </div>
+
+    <ng-container *ngIf="!loading && !error && course">
+
+      <!-- Course header card -->
+      <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] px-7 py-7 mb-6
+                  flex items-center gap-6">
+        <div class="w-16 h-16 rounded-[16px] bg-[#4A90C4]/12 border border-[#4A90C4]/20
+                    flex items-center justify-center text-[28px] shrink-0">
+          🎓
+        </div>
+        <div class="flex-1 min-w-0">
+          <h1 class="font-playfair text-[24px] font-bold leading-snug">
+            {{ course.courseCode }} — {{ course.courseName }}
+          </h1>
+          <div class="flex items-center gap-3 mt-1.5 text-[13px] text-[#7A9BBF]">
+            <span *ngIf="course.department">{{ course.department }}</span>
+            <span *ngIf="course.department && course.credits" class="text-white/20">·</span>
+            <span *ngIf="course.credits">{{ course.credits }} credits</span>
+          </div>
+          <p *ngIf="course.description"
+             class="text-[13px] text-[#7A9BBF]/70 mt-2 leading-relaxed">
+            {{ course.description }}
+          </p>
+        </div>
+        <div class="flex gap-5 shrink-0">
+          <div class="text-center">
+            <div class="font-playfair text-[22px] font-bold">{{ enrollments.length }}</div>
+            <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Students</div>
+          </div>
+          <div class="text-center">
+            <div class="font-playfair text-[22px] font-bold">
+              {{ semesters.length - 1 }}
+            </div>
+            <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Semesters</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Semester filter -->
+      <div class="bg-[#162338] border border-white/[0.07] rounded-[10px] px-4 py-2.5
+                  flex items-center gap-3 flex-wrap mb-5">
+        <span class="text-[12px] text-[#7A9BBF] uppercase tracking-[1px]">Semester</span>
+        <div class="flex gap-1.5 flex-wrap">
+          <button *ngFor="let s of semesters"
+                  (click)="selectedSemester = s"
+                  [class]="'text-[12px] px-3.5 py-[5px] rounded-full cursor-pointer border
+                             font-dm-sans transition-colors ' +
+                    (selectedSemester === s
+                      ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30 font-medium'
+                      : 'text-[#7A9BBF] border-white/[0.07] bg-transparent hover:text-white')">
+            {{ s === 'all' ? 'All' : s }}
+          </button>
+        </div>
+        <span class="ml-auto text-[12px] text-[#7A9BBF]">
+          Showing {{ filteredEnrollments.length }}
+          of {{ enrollments.length }}
+          student{{ enrollments.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+
+      <!-- Enrollments table -->
+      <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden">
+
+        <!-- Table header -->
+        <div class="grid grid-cols-[2fr_1.5fr_1fr_1fr_80px] gap-3 px-5 py-3
+                    border-b border-white/[0.07]">
+          <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Student</div>
+          <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Projects</div>
+          <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Technologies</div>
+          <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Semester</div>
+          <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Status</div>
+        </div>
+
+        <!-- Empty state -->
+        <div *ngIf="filteredEnrollments.length === 0"
+             class="text-center py-12 text-[13px] text-[#7A9BBF]/60 italic">
+          No enrollments for this semester.
+        </div>
+
+        <!-- Enrollment rows -->
+        <ng-container *ngFor="let e of filteredEnrollments; let lastEnrollment = last">
+
+          <!-- Row per project -->
+          <div *ngFor="let p of e.projects; let lastProject = last"
+               (click)="openProject(e.student.userId, p.projectId)"
+               [class]="'grid grid-cols-[2fr_1.5fr_1fr_1fr_80px] gap-3 px-5 py-3.5
+                          cursor-pointer hover:bg-white/[0.02] items-center transition-colors ' +
+                         ((lastEnrollment && lastProject) ? '' : 'border-b border-white/[0.07]')">
+
+            <!-- Student -->
+            <div class="flex items-center gap-2.5"
+                 (click)="$event.stopPropagation(); openStudentProfile(e.student.userId)">
+              <div class="w-[22px] h-[22px] rounded-full flex items-center justify-center
+                          text-[8px] font-bold text-white shrink-0"
+                   style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+                {{ getInitials(e.student.name) }}
+              </div>
+              <span class="text-[13px] text-white/80 hover:text-[#4A90C4] transition-colors">
+                {{ e.student.name }}
+              </span>
+            </div>
+
+            <!-- Project title -->
+            <div class="min-w-0">
+              <div class="text-[13px] font-semibold truncate">{{ p.title }}</div>
+            </div>
+
+            <!-- Technologies placeholder -->
+            <div class="text-[11px] text-[#7A9BBF]">—</div>
+
+            <!-- Semester -->
+            <div class="text-[12px] text-[#7A9BBF]">{{ e.semester }} {{ e.year }}</div>
+
+            <!-- Status -->
+            <div>
+              <span [class]="'text-[10px] px-2.5 py-[3px] rounded-full font-medium ' + getStatusClass(p.status)">
+                {{ p.status | titlecase }}
+              </span>
+            </div>
+          </div>
+
+          <!-- No-projects row -->
+          <div *ngIf="e.projects.length === 0"
+               (click)="openStudentProfile(e.student.userId)"
+               [class]="'grid grid-cols-[2fr_1.5fr_1fr_1fr_80px] gap-3 px-5 py-3.5
+                          cursor-pointer hover:bg-white/[0.02] items-center transition-colors ' +
+                         (lastEnrollment ? '' : 'border-b border-white/[0.07]')">
+            <div class="flex items-center gap-2.5">
+              <div class="w-[22px] h-[22px] rounded-full flex items-center justify-center
+                          text-[8px] font-bold text-white shrink-0"
+                   style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+                {{ getInitials(e.student.name) }}
+              </div>
+              <span class="text-[13px] text-white/80 hover:text-[#4A90C4] transition-colors">
+                {{ e.student.name }}
+              </span>
+            </div>
+            <div class="text-[13px] text-[#7A9BBF] italic">No projects</div>
+            <div class="text-[11px] text-[#7A9BBF]">—</div>
+            <div class="text-[12px] text-[#7A9BBF]">{{ e.semester }} {{ e.year }}</div>
+            <div></div>
+          </div>
+
+        </ng-container>
+      </div>
+
+    </ng-container>
+  </div>
+</div>

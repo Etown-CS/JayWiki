@@ -1,199 +1,108 @@
+<!-- frontend/src/app/features/courses/courses.html -->
 <div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
   <app-nav></app-nav>
 
-  <div class="max-w-[1400px] mx-auto px-10 py-9">
+  <div class="max-w-[1300px] mx-auto px-6 md:px-10 py-9">
 
     <!-- Header -->
     <div class="mb-7">
-      <h1 class="font-playfair text-[32px] font-bold">Course & Class Browser</h1>
+      <h1 class="font-playfair text-[32px] font-bold">Course Catalog</h1>
       <p class="text-[14px] text-[#7A9BBF] mt-1.5 font-light">
-        Browse all ECS projects organized by course — filter by semester
+        Browse all ECS courses — click a course to see enrolled students and projects
       </p>
     </div>
 
-    <!-- Loading catalog -->
-    <div *ngIf="loadingCatalog" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">Loading courses…</div>
-    <div *ngIf="!loadingCatalog && error" class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4 text-[13px] text-[#f28b9b]">{{ error }}</div>
+    <!-- Search bar -->
+    <div class="relative mb-7 max-w-xl">
+      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        placeholder="Search by code, name, department…"
+        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-white/[0.07] bg-[#162338]
+               text-white text-[14px] outline-none placeholder-[#7A9BBF]/50
+               focus:border-[#4A90C4]/50 transition-colors" />
+    </div>
 
-    <!-- Two-column layout -->
-    <div *ngIf="!loadingCatalog && !error" class="grid grid-cols-[260px_1fr] gap-6">
+    <!-- Loading -->
+    <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">
+      Loading courses…
+    </div>
 
-      <!-- ── LEFT: Course catalog sidebar ──────────────────────────────────── -->
-      <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5 h-fit sticky top-20">
-        <div class="text-[13px] font-semibold text-[#7A9BBF] uppercase tracking-[1px] mb-3.5">Courses</div>
+    <!-- Error -->
+    <div *ngIf="!loading && error"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4
+                text-[13px] text-[#f28b9b]">
+      {{ error }}
+    </div>
 
-        <!-- Search -->
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          placeholder="Search courses…"
-          class="w-full px-3 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03] text-white text-[12px] outline-none placeholder-[#7A9BBF] focus:border-[#4A90C4]/40 mb-3" />
+    <!-- Empty search state -->
+    <div *ngIf="!loading && !error && filtered.length === 0"
+         class="text-center py-24 text-[#7A9BBF]">
+      <div class="text-[40px] mb-4">🔍</div>
+      <div class="text-[15px] font-medium mb-1 text-white/60">No courses found</div>
+      <div class="text-[13px]">Try a different search term</div>
+    </div>
 
-        <!-- Empty -->
-        <div *ngIf="filteredCatalog.length === 0" class="text-[12px] text-[#7A9BBF]/60 italic text-center py-4">
-          No courses found
-        </div>
+    <!-- Card grid -->
+    <div *ngIf="!loading && !error && filtered.length > 0"
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 
-        <!-- Course list -->
-        <div *ngFor="let c of filteredCatalog; let i = index"
-             (click)="selectCourse(c.catalogId)"
-             [class]="'flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer mb-1 transition-colors ' +
-               (selectedCatalogId === c.catalogId ? 'bg-[#4A90C4]/12' : 'hover:bg-white/[0.04]')">
-          <div class="w-2 h-2 rounded-full shrink-0" [style.background]="getCatalogDotColor(i)"></div>
-          <div class="flex-1 min-w-0">
-            <div [class]="'text-[13px] font-semibold ' + (selectedCatalogId === c.catalogId ? 'text-[#4A90C4]' : '')">
-              {{ c.courseCode }}
-            </div>
-            <div class="text-[11px] text-[#7A9BBF] truncate">{{ c.courseName }}</div>
-          </div>
-        </div>
-      </div>
+      <div *ngFor="let c of filtered; let i = index"
+           (click)="openCourse(c.catalogId)"
+           class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5
+                  cursor-pointer hover:border-[#4A90C4]/40 hover:-translate-y-0.5
+                  transition-all group">
 
-      <!-- ── RIGHT: Selected course detail ──────────────────────────────────── -->
-      <div *ngIf="selectedCourse">
-
-        <!-- Course header -->
-        <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] px-7 py-6 mb-5 flex items-center gap-5">
-          <div class="w-14 h-14 rounded-[14px] bg-[#4A90C4]/12 flex items-center justify-center text-[26px] shrink-0">🎓</div>
-          <div class="flex-1">
-            <div class="font-playfair text-[22px] font-bold">
-              {{ selectedCourse.courseCode }} — {{ selectedCourse.courseName }}
-            </div>
-            <div class="text-[13px] text-[#7A9BBF] mt-1">
-              <span *ngIf="selectedCourse.department">{{ selectedCourse.department }}</span>
-              <span *ngIf="selectedCourse.credits"> · {{ selectedCourse.credits }} credits</span>
-            </div>
-            <div *ngIf="selectedCourse.description" class="text-[12px] text-[#7A9BBF]/70 mt-1.5 line-clamp-2">
-              {{ selectedCourse.description }}
-            </div>
-          </div>
-          <div class="flex gap-5 shrink-0">
-            <div class="text-center">
-              <div class="font-playfair text-[20px] font-bold">{{ enrollments.length }}</div>
-              <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Students</div>
-            </div>
-            <div class="text-center">
-              <div class="font-playfair text-[20px] font-bold">{{ semesters.length - 1 }}</div>
-              <div class="text-[10px] text-[#7A9BBF] uppercase tracking-[0.5px] mt-0.5">Semesters</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Semester filter bar -->
-        <div class="bg-[#162338] border border-white/[0.07] rounded-[10px] px-4 py-2.5 flex items-center gap-3 flex-wrap mb-5">
-          <span class="text-[12px] text-[#7A9BBF] uppercase tracking-[1px]">Semester</span>
-          <div class="flex gap-1.5 flex-wrap">
-            <button *ngFor="let s of semesters"
-              (click)="selectedSemester = s"
-              [class]="'text-[12px] px-3.5 py-[5px] rounded-full cursor-pointer border font-dm-sans transition-colors ' +
-                (selectedSemester === s
-                  ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30 font-medium'
-                  : 'text-[#7A9BBF] border-white/[0.07] bg-transparent hover:text-white')">
-              {{ s === 'all' ? 'All' : s }}
-            </button>
-          </div>
-          <span class="ml-auto text-[12px] text-[#7A9BBF]">
-            Showing {{ filteredEnrollments.length }} of {{ enrollments.length }} student{{ enrollments.length !== 1 ? 's' : '' }}
+        <!-- Color dot + course code -->
+        <div class="flex items-center gap-2.5 mb-3">
+          <div class="w-2.5 h-2.5 rounded-full shrink-0"
+               [style.background]="getDotColor(i)"></div>
+          <span class="text-[13px] font-bold text-[#4A90C4]">{{ c.courseCode }}</span>
+          <span *ngIf="c.credits"
+                class="ml-auto text-[10px] text-[#7A9BBF] bg-white/[0.04]
+                       border border-white/[0.07] rounded-full px-2 py-0.5">
+            {{ c.credits }} cr
           </span>
         </div>
 
-        <!-- Loading enrollments -->
-        <div *ngIf="loadingEnrollments" class="bg-[#162338] border border-white/[0.07] rounded-[14px] flex justify-center py-12 text-[14px] text-[#7A9BBF]">
-          Loading enrollments…
+        <!-- Course name -->
+        <div class="text-[14px] font-semibold leading-snug mb-1.5
+                    group-hover:text-[#4A90C4] transition-colors">
+          {{ c.courseName }}
         </div>
 
-        <!-- Projects table -->
-        <div *ngIf="!loadingEnrollments" class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden">
-
-          <!-- Table header -->
-          <div class="grid grid-cols-[2fr_1.2fr_0.8fr_1fr_80px] gap-3 px-5 py-3 border-b border-white/[0.07]">
-            <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Student</div>
-            <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Projects</div>
-            <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Technologies</div>
-            <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Semester</div>
-            <div class="text-[10px] uppercase tracking-[1px] text-[#7A9BBF] font-semibold">Status</div>
-          </div>
-
-          <!-- Empty enrollments -->
-          <div *ngIf="filteredEnrollments.length === 0" class="text-center py-12 text-[13px] text-[#7A9BBF]/60 italic">
-            No enrollments for this semester.
-          </div>
-
-          <!-- Enrollment rows -->
-          <div *ngFor="let e of filteredEnrollments; let last = last">
-
-            <!-- Rows for each project -->
-            <div *ngFor="let p of e.projects; let pLast = last"
-                 (click)="openProject(e.student.userId, p.projectId)"
-                 [class]="'grid grid-cols-[2fr_1.2fr_0.8fr_1fr_80px] gap-3 px-5 py-3.5 cursor-pointer hover:bg-white/[0.02] items-center ' +
-                   ((last && pLast) ? '' : 'border-b border-white/[0.07]')">
-
-              <!-- Student -->
-              <div class="flex items-center gap-2.5" (click)="$event.stopPropagation(); openStudentProfile(e.student.userId)">
-                <div class="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0"
-                     style="background:linear-gradient(135deg,#4A90C4,#243D61)">
-                  {{ getInitials(e.student.name) }}
-                </div>
-                <span class="text-[13px] text-white/80 hover:text-[#4A90C4] transition-colors">{{ e.student.name }}</span>
-              </div>
-
-              <!-- Project title -->
-              <div class="min-w-0">
-                <div class="text-[13px] font-semibold truncate">{{ p.title }}</div>
-              </div>
-
-              <!-- Technologies placeholder -->
-              <div class="text-[11px] text-[#7A9BBF]">—</div>
-
-              <!-- Semester -->
-              <div class="text-[12px] text-[#7A9BBF]">{{ e.semester }} {{ e.year }}</div>
-
-              <!-- Status -->
-              <div>
-                <span [class]="'text-[10px] px-2.5 py-[3px] rounded-full font-medium ' + getStatusClass(p.status)">
-                  {{ p.status | titlecase }}
-                </span>
-              </div>
-            </div>
-
-            <!-- No-projects row (shown only when student has no projects) -->
-            <div *ngIf="e.projects.length === 0"
-                 (click)="openStudentProfile(e.student.userId)"
-                 [class]="'grid grid-cols-[2fr_1.2fr_0.8fr_1fr_80px] gap-3 px-5 py-3.5 cursor-pointer hover:bg-white/[0.02] items-center ' +
-                   (last ? '' : 'border-b border-white/[0.07]')">
-
-              <!-- Student -->
-              <div class="flex items-center gap-2.5">
-                <div class="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0"
-                     style="background:linear-gradient(135deg,#4A90C4,#243D61)">
-                  {{ getInitials(e.student.name) }}
-                </div>
-                <span class="text-[13px] text-white/80 hover:text-[#4A90C4] transition-colors">{{ e.student.name }}</span>
-              </div>
-
-              <!-- No projects -->
-              <div class="text-[13px] text-[#7A9BBF] italic">No projects</div>
-
-              <!-- Technologies placeholder -->
-              <div class="text-[11px] text-[#7A9BBF]">—</div>
-
-              <!-- Semester -->
-              <div class="text-[12px] text-[#7A9BBF]">{{ e.semester }} {{ e.year }}</div>
-
-              <!-- Status -->
-              <div></div>
-            </div>
-
-          </div>
+        <!-- Department -->
+        <div *ngIf="c.department"
+             class="text-[11px] text-[#7A9BBF] mb-2">
+          {{ c.department }}
         </div>
 
-      </div>
+        <!-- Description -->
+        <p *ngIf="c.description"
+           class="text-[12px] text-[#7A9BBF]/70 line-clamp-2 leading-relaxed">
+          {{ c.description }}
+        </p>
 
-      <!-- No course selected -->
-      <div *ngIf="!selectedCourse && !loadingCatalog" class="flex items-center justify-center text-[#7A9BBF] text-[14px] py-24">
-        Select a course from the list
+        <!-- View arrow -->
+        <div class="flex justify-end mt-3">
+          <span class="text-[11px] text-[#4A90C4]/60 group-hover:text-[#4A90C4] transition-colors">
+            View →
+          </span>
+        </div>
       </div>
 
     </div>
+
+    <!-- Result count -->
+    <div *ngIf="!loading && !error && filtered.length > 0"
+         class="mt-6 text-[12px] text-[#7A9BBF]/60 text-center">
+      Showing {{ filtered.length }} of {{ catalog.length }} courses
+    </div>
+
   </div>
 </div>
