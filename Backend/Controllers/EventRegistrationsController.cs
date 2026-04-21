@@ -86,14 +86,13 @@ public class EventRegistrationsController : ProjectBaseController
         });
     }
 
-    // ─── DELETE /api/events/{eventId}/registrations/{userId} ─────────────────
+    // ─── DELETE /api/events/{eventId}/registrations ──────────────────────────
     /// <summary>
-    /// Unregister a user from an event.
-    /// Users may unregister themselves. Instructors/admins may unregister anyone.
+    /// Unregister the currently authenticated user from an event.
     /// </summary>
-    [HttpDelete("{userId}")]
+    [HttpDelete]
     [Authorize]
-    public async Task<IActionResult> Unregister(int eventId, int userId)
+    public async Task<IActionResult> Unregister(int eventId)
     {
         var eventExists = await _context.Events.AnyAsync(e => e.EventId == eventId);
         if (!eventExists)
@@ -103,18 +102,11 @@ public class EventRegistrationsController : ProjectBaseController
         if (currentUser == null)
             return Unauthorized(new { message = "User not found." });
 
-        // Users can only unregister themselves unless they are instructor/admin
-        var isSelf  = currentUser.UserId == userId;
-        var isAdmin = await IsInstructorOrAdminAsync(currentUser.UserId);
-
-        if (!isSelf && !isAdmin)
-            return Forbid();
-
         var registration = await _context.EventRegistrations
-            .FirstOrDefaultAsync(r => r.EventId == eventId && r.UserId == userId);
+            .FirstOrDefaultAsync(r => r.EventId == eventId && r.UserId == currentUser.UserId);
 
         if (registration == null)
-            return NotFound(new { message = $"User {userId} is not registered for event {eventId}." });
+            return NotFound(new { message = "You are not registered for this event." });
 
         _context.EventRegistrations.Remove(registration);
         await _context.SaveChangesAsync();

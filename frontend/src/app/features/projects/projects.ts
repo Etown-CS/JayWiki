@@ -1,11 +1,10 @@
-// F — Global projects (public). All projects from all students.
-// TODO: Replace stub data with a dedicated backend endpoint
-//       e.g. GET /api/projects?status=&type=&page= once it exists.
-//       Current workaround would be GET /api/users then fan-out per user
-//       which is an N+1 pattern and not suitable for production.
+// All projects from all students.
+// TODO: Replace with a dedicated GET /api/projects endpoint once it exists.
+//       Current approach fans out N+1 from GET /api/users — not suitable for production scale.
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavComponent } from '../../core/nav/nav';
@@ -24,7 +23,7 @@ export interface GalleryProject extends Project {
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, NavComponent],
+  imports: [CommonModule, FormsModule, NavComponent],
   templateUrl: './projects.html',
 })
 export class Projects implements OnInit {
@@ -32,6 +31,7 @@ export class Projects implements OnInit {
   loading = true;
   error = '';
 
+  searchTerm = '';
   activeTypeFilter = 'all';
   activeStatusFilter = 'all';
   sortMode = 'newest';
@@ -54,7 +54,6 @@ export class Projects implements OnInit {
   async loadProjects(): Promise<void> {
     this.loading = true;
     try {
-      // Fetch all users, then all their projects in parallel
       const users = await firstValueFrom(
         this.http.get<User[]>(`${environment.apiBaseUrl}/api/users`)
       );
@@ -64,9 +63,7 @@ export class Projects implements OnInit {
           users.map(u =>
             this.http
               .get<Project[]>(`${environment.apiBaseUrl}/api/users/${u.userId}/projects`)
-              .pipe(
-                catchError(() => of([] as Project[])),
-              )
+              .pipe(catchError(() => of([] as Project[])))
           )
         )
       );
@@ -91,36 +88,68 @@ export class Projects implements OnInit {
 
   get filteredProjects(): GalleryProject[] {
     let list = [...this.projects];
+
+    // Search filter — matches title, description, topics, and student name
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase().trim();
+      list = list.filter(p =>
+        p.title.toLowerCase().includes(term) ||
+        (p.description?.toLowerCase().includes(term) ?? false) ||
+        p.topics?.some(t => t.name.toLowerCase().includes(term)) ||
+        p.studentName.toLowerCase().includes(term)
+      );
+    }
+
+    // Type / status filters
     if (this.activeTypeFilter !== 'all')
       list = list.filter(p => p.projectType === this.activeTypeFilter);
     if (this.activeStatusFilter !== 'all')
       list = list.filter(p => p.status === this.activeStatusFilter);
+
+    // Sort
     if (this.sortMode === 'newest')
       list.sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? ''));
     else if (this.sortMode === 'oldest')
       list.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
     else if (this.sortMode === 'az')
       list.sort((a, b) => a.title.localeCompare(b.title));
+
     return list;
   }
 
-  setTypeFilter(f: string): void  { this.activeTypeFilter = f; }
+  get isFiltered(): boolean {
+    return this.searchTerm.trim() !== '' ||
+           this.activeTypeFilter !== 'all' ||
+           this.activeStatusFilter !== 'all';
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.activeTypeFilter = 'all';
+    this.activeStatusFilter = 'all';
+  }
+
+  setTypeFilter(f: string): void   { this.activeTypeFilter = f; }
   setStatusFilter(f: string): void { this.activeStatusFilter = f; }
   setSort(s: string): void         { this.sortMode = s; }
   setView(v: 'grid' | 'list'): void { this.viewMode = v; }
 
   openProject(p: GalleryProject): void {
-    this.router.navigate(['/projects', p.studentId, p.projectId]);
+    this.router.navigate(['/gallery', p.studentId, p.projectId]);
   }
 
-  getProjectEmoji(p: Project): string {
+  getProjectEmoji(p: GalleryProject): string {
     const map: Record<string, string> = {
       academic: '🌐', research: '🔬', club: '🎯', personal: '💡',
     };
     return map[p.projectType] ?? '📁';
   }
 
-  getBannerGradient(p: Project): string {
+  getBannerGradient(p: GalleryProject): string {
     const map: Record<string, string> = {
       academic: 'linear-gradient(135deg,rgba(74,144,196,0.18),rgba(13,27,46,0.85))',
       research: 'linear-gradient(135deg,rgba(46,204,113,0.15),rgba(13,27,46,0.85))',
@@ -132,8 +161,8 @@ export class Projects implements OnInit {
 
   getStatusClass(status: string): string {
     return status === 'active'
-      ? 'bg-[#2ECC71]/10 text-[#2ECC71]'
-      : 'bg-[#4A90C4]/10 text-[#4A90C4]';
+      ? 'bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/20'
+      : 'bg-[#4A90C4]/10 text-[#4A90C4] border-[#4A90C4]/20';
   }
 
   formatDateRange(start?: string, end?: string): string {

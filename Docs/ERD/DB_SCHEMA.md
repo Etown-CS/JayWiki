@@ -211,7 +211,7 @@ erDiagram
 - **CourseId** (int, PK, Identity)
 - **UserId** (int, FK → USER, required) — the enrolled student
 - **CatalogId** (int, FK → COURSE_CATALOG, required) — canonical course reference
-- **Semester** (string, required, trimmed) — "Fall", "Spring", "Summer"
+- **Semester** (string, required, trimmed) — "Fall", "Spring", "Summer", "Fall/Spring"
 - **Year** (int, required)
 - **Instructor** (string, nullable) — semester-specific instructor name
 - Connected to: USER, COURSE_CATALOG, PROJECT

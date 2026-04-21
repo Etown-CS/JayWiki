@@ -17,10 +17,16 @@ import { firstValueFrom } from 'rxjs';
 // Exported so ProjectFormModal can import them without circular deps
 export interface UserCourse {
   courseId:   number;
-  courseCode: string;
-  courseName: string;
   semester:   string;
   year:       number;
+  instructor?: string;
+  course: {
+    catalogId:   number;
+    courseCode:  string;
+    courseName:  string;
+    department?: string;
+    credits?:    number;
+  };
 }
 
 export interface ProjectForm {
@@ -162,7 +168,7 @@ export class MyProjects implements OnInit {
 
     if (p.course) {
       const match = this.courses.find(
-        c => c.courseCode === p.course!.courseCode &&
+        c => c.course.courseCode === p.course!.courseCode &&
              c.semester   === p.course!.semester   &&
              c.year       === p.course!.year
       );

@@ -1,7 +1,7 @@
 <div class="font-dm-sans bg-[#0D1B2E] text-white min-h-screen">
   <app-nav></app-nav>
 
-  <div class="max-w-[1400px] mx-auto px-10 py-9">
+  <div class="max-w-[1400px] mx-auto px-10 py-9 pt-[calc(3.5rem+2.25rem)]">
 
     <!-- Page header -->
     <div class="mb-7">
@@ -11,128 +11,181 @@
       </p>
     </div>
 
-    <!-- Filter bar -->
-    <div class="bg-[#162338] border border-white/[0.07] rounded-xl px-[18px] py-3.5 flex items-center gap-3 flex-wrap mb-7">
-      <span class="text-[12px] text-[#7A9BBF] uppercase tracking-[1px] mr-1">Type</span>
+    <!-- Search bar -->
+    <div class="mb-4">
+      <div class="relative">
+        <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A90C4] pointer-events-none"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+        </svg>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search by title, description, topic, or student name..."
+          class="w-full bg-[#162338] border border-white/[0.07] rounded-xl
+                 pl-10 pr-10 py-2.5 text-[13px] text-white placeholder-white/30
+                 focus:outline-none focus:border-[#4A90C4] focus:ring-1 focus:ring-[#4A90C4]/40
+                 transition-colors"
+        />
+        <button *ngIf="searchTerm"
+                (click)="clearSearch()"
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors cursor-pointer bg-transparent border-0 p-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
 
+    <!-- Filter bar -->
+    <div class="bg-[#162338] border border-white/[0.07] rounded-xl px-[18px] py-3.5 flex items-center gap-3 flex-wrap mb-4">
+      <span class="text-[12px] text-[#7A9BBF] uppercase tracking-[1px] mr-1">Type</span>
       <button *ngFor="let f of typeFilters"
         (click)="setTypeFilter(f)"
         [class]="'text-[12px] px-3.5 py-[5px] rounded-full cursor-pointer border font-dm-sans transition-colors ' +
           (activeTypeFilter === f
-            ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30'
+            ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30 font-medium'
             : 'text-[#7A9BBF] border-white/[0.07] bg-transparent hover:text-white')">
         {{ f === 'all' ? 'All Types' : (f | titlecase) }}
       </button>
-
       <div class="w-px h-5 bg-white/[0.07] mx-1"></div>
       <span class="text-[12px] text-[#7A9BBF] uppercase tracking-[1px] mr-1">Status</span>
-
       <button *ngFor="let s of statusFilters"
         (click)="setStatusFilter(s)"
         [class]="'text-[12px] px-3.5 py-[5px] rounded-full cursor-pointer border font-dm-sans transition-colors ' +
           (activeStatusFilter === s
-            ? (s === 'active' ? 'bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/25' : s === 'completed' ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30' : 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30')
+            ? 'bg-[#4A90C4]/15 text-[#4A90C4] border-[#4A90C4]/30 font-medium'
             : 'text-[#7A9BBF] border-white/[0.07] bg-transparent hover:text-white')">
         {{ s === 'all' ? 'All' : (s | titlecase) }}
       </button>
-
-      <span class="ml-auto text-[12px] text-[#7A9BBF]">{{ filteredProjects.length }} results</span>
+      <div class="ml-auto flex items-center gap-3">
+        <button *ngIf="isFiltered"
+                (click)="clearFilters()"
+                class="text-[12px] text-[#C8102E] border border-[#C8102E]/30 bg-[#C8102E]/8 hover:bg-[#C8102E]/15 px-3 py-[5px] rounded-full cursor-pointer transition-colors">
+          Clear filters
+        </button>
+        <span class="text-[12px] text-[#7A9BBF]">
+          {{ filteredProjects.length }} result{{ filteredProjects.length !== 1 ? 's' : '' }}
+          <span *ngIf="searchTerm.trim()"> for "{{ searchTerm }}"</span>
+        </span>
+      </div>
     </div>
 
-    <!-- Sort + view toggle bar -->
-    <div class="flex justify-between items-center mb-5">
-      <div class="flex gap-2">
+    <!-- Sort bar -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex gap-1">
         <button *ngFor="let s of [['newest','Newest'],['oldest','Oldest'],['az','A–Z']]"
           (click)="setSort(s[0])"
-          [class]="'text-[12px] px-3 py-[5px] rounded-md border cursor-pointer font-dm-sans transition-colors ' +
+          [class]="'text-[12px] px-3.5 py-[5px] rounded-lg cursor-pointer border font-dm-sans transition-colors ' +
             (sortMode === s[0]
-              ? 'text-white border-white/20 bg-white/5'
-              : 'text-[#7A9BBF] border-white/[0.07] bg-transparent hover:text-white')">
+              ? 'bg-[#162338] border-white/[0.07] text-white font-medium'
+              : 'border-transparent text-[#7A9BBF] bg-transparent hover:text-white')">
           {{ s[1] }}
         </button>
       </div>
       <div class="flex gap-1">
         <button (click)="setView('grid')"
           [class]="'w-[30px] h-[30px] rounded-md border flex items-center justify-center text-[14px] cursor-pointer transition-colors ' +
-            (viewMode === 'grid' ? 'bg-[#4A90C4]/12 border-[#4A90C4]/30 text-[#4A90C4]' : 'border-white/[0.07] text-[#7A9BBF] bg-transparent')">
-          ⊞
-        </button>
+            (viewMode === 'grid' ? 'bg-[#4A90C4]/12 border-[#4A90C4]/30 text-[#4A90C4]' : 'border-white/[0.07] text-[#7A9BBF] bg-transparent hover:text-white')">⊞</button>
         <button (click)="setView('list')"
           [class]="'w-[30px] h-[30px] rounded-md border flex items-center justify-center text-[14px] cursor-pointer transition-colors ' +
-            (viewMode === 'list' ? 'bg-[#4A90C4]/12 border-[#4A90C4]/30 text-[#4A90C4]' : 'border-white/[0.07] text-[#7A9BBF] bg-transparent')">
-          ☰
-        </button>
+            (viewMode === 'list' ? 'bg-[#4A90C4]/12 border-[#4A90C4]/30 text-[#4A90C4]' : 'border-white/[0.07] text-[#7A9BBF] bg-transparent hover:text-white')">☰</button>
       </div>
     </div>
 
     <!-- Loading -->
-    <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">Loading projects…</div>
+    <div *ngIf="loading" class="flex items-center justify-center py-20 text-[#7A9BBF] text-[14px] gap-3">
+      <svg class="animate-spin w-5 h-5 text-[#4A90C4]" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      Loading projects...
+    </div>
 
     <!-- Error -->
-    <div *ngIf="!loading && error" class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4 text-[13px] text-[#f28b9b]">
+    <div *ngIf="!loading && error"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/20 rounded-xl px-5 py-4 text-[13px] text-[#C8102E]">
       {{ error }}
     </div>
 
-    <!-- Empty state -->
-    <div *ngIf="!loading && !error && filteredProjects.length === 0"
-         class="text-center py-24 text-[#7A9BBF]">
-      <div class="text-[40px] mb-4">🔍</div>
-      <div class="text-[15px] font-medium mb-2 text-white/60">No projects found</div>
-      <div class="text-[13px]">Try adjusting your filters</div>
+    <!-- No results (search/filter produced empty set) -->
+    <div *ngIf="!loading && !error && filteredProjects.length === 0 && projects.length > 0"
+         class="bg-[#162338] border border-white/[0.07] rounded-2xl flex flex-col items-center justify-center py-20 gap-3 text-center">
+      <div class="text-[40px]">🔍</div>
+      <p class="text-[15px] font-semibold">No projects match your search.</p>
+      <p class="text-[13px] text-[#7A9BBF]">Try different keywords or clear your filters.</p>
+      <button (click)="clearSearch()"
+              class="mt-2 px-4 py-2 rounded-lg text-[12px] text-[#4A90C4] border border-[#4A90C4]/30 bg-[#4A90C4]/8 hover:bg-[#4A90C4]/15 cursor-pointer transition-colors">
+        Clear search
+      </button>
+    </div>
+
+    <!-- Empty (no projects at all) -->
+    <div *ngIf="!loading && !error && projects.length === 0"
+         class="bg-[#162338] border border-white/[0.07] rounded-2xl flex flex-col items-center justify-center py-20 gap-3">
+      <div class="text-[40px]">📁</div>
+      <p class="text-[15px] font-semibold">No projects yet</p>
+      <p class="text-[13px] text-[#7A9BBF]">Projects will appear here once students add them.</p>
     </div>
 
     <!-- Grid view -->
-    <div *ngIf="!loading && !error && viewMode === 'grid'"
-         class="grid grid-cols-3 gap-[18px]">
-      <div
-        *ngFor="let p of filteredProjects"
-        (click)="openProject(p)"
-        class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden cursor-pointer transition-all duration-150 hover:border-[#4A90C4]/35 hover:-translate-y-0.5">
+    <div *ngIf="!loading && !error && filteredProjects.length > 0 && viewMode === 'grid'"
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div *ngFor="let p of filteredProjects"
+           (click)="openProject(p)"
+           class="bg-[#162338] border border-white/[0.07] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] hover:-translate-y-0.5 transition-all group">
 
         <!-- Banner -->
-        <div class="h-[120px] flex items-center justify-center text-[42px] relative" [style.background]="getBannerGradient(p)">
+        <div class="h-[90px] flex items-center justify-center text-[36px] relative"
+             [style.background]="getBannerGradient(p)">
           {{ getProjectEmoji(p) }}
           <div *ngIf="p.course"
-               class="absolute top-3 left-3 bg-[#0D1B2E]/80 border border-white/[0.07] rounded-md px-2.5 py-[3px] text-[10px] font-semibold text-[#4A90C4] tracking-[0.5px] backdrop-blur-sm">
+               class="absolute top-3 left-3 text-[10px] font-bold px-2 py-[3px] rounded-md bg-[#0D1B2E]/60 text-[#4A90C4] border border-[#4A90C4]/20">
             {{ p.course.courseCode }}
           </div>
-          <div [class]="'absolute top-3 right-3 rounded-full px-2.5 py-[3px] text-[10px] font-medium ' + getStatusClass(p.status)">
+          <div [class]="'absolute top-3 right-3 text-[10px] font-semibold px-2 py-[3px] rounded-full border ' + getStatusClass(p.status)">
             {{ p.status | titlecase }}
           </div>
         </div>
 
-        <!-- Body -->
-        <div class="px-[18px] pt-4 pb-[18px]">
-          <div class="text-[15px] font-semibold mb-1 leading-snug">{{ p.title }}</div>
-          <div class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] mb-2.5">
-            <div class="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[8px] font-semibold text-white shrink-0"
-                 style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+        <!-- Card body -->
+        <div class="p-5">
+          <h3 class="font-playfair text-[16px] font-bold leading-snug mb-2 group-hover:text-[#4A90C4] transition-colors">
+            {{ p.title }}
+          </h3>
+          <div class="flex items-center gap-1.5 mb-2">
+            <div class="w-5 h-5 rounded-full bg-[#4A90C4]/15 border border-[#4A90C4]/20 flex items-center justify-center text-[9px] font-bold text-[#4A90C4] shrink-0">
               {{ p.studentInitials }}
             </div>
-            {{ p.studentName }} <span *ngIf="p.course">· {{ p.course.semester }} {{ p.course.year }}</span>
-          </div>
-          <div class="text-[12px] text-[#7A9BBF] leading-relaxed mb-3 line-clamp-2">
-            {{ p.description || 'No description provided.' }}
-          </div>
-
-          <!-- Topic tags -->
-          <div class="flex gap-1.5 flex-wrap mb-3.5">
-            <span *ngFor="let t of (p.topics ?? []).slice(0, 4)"
-                  class="text-[10px] px-2 py-[2px] rounded-full font-medium bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
-              {{ t.name }}
+            <span class="text-[11px] text-[#7A9BBF]">{{ p.studentName }}</span>
+            <span *ngIf="p.course" class="text-[11px] text-[#7A9BBF]">
+              · {{ p.course.semester }}/{{ p.course.year }}
             </span>
           </div>
-
-          <!-- Footer -->
-          <div class="flex justify-between items-center pt-3 border-t border-white/[0.07]">
+          <p *ngIf="p.description" class="text-[12px] text-white/50 mb-3 line-clamp-2 font-light leading-relaxed">
+            {{ p.description }}
+          </p>
+          <p *ngIf="!p.description" class="text-[12px] text-white/30 mb-3 italic">No description provided.</p>
+          <div *ngIf="(p.topics ?? []).length > 0" class="flex flex-wrap gap-1.5 mb-3">
+            <span *ngFor="let t of (p.topics ?? []).slice(0, 4)"
+                  class="text-[10px] px-2 py-[2px] rounded-full bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
+              {{ t.name }}
+            </span>
+            <span *ngIf="(p.topics ?? []).length > 4"
+                  class="text-[10px] px-2 py-[2px] rounded-full bg-white/5 text-white/40 border border-white/10">
+              +{{ (p.topics ?? []).length - 4 }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between pt-3 border-t border-white/[0.07]">
             <span class="text-[11px] text-[#7A9BBF]">{{ formatDateRange(p.startDate, p.endDate) }}</span>
-            <div class="flex gap-2">
+            <div class="flex gap-1.5">
               <a *ngIf="p.githubUrl" [href]="p.githubUrl" target="_blank" (click)="$event.stopPropagation()"
-                 class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline">
+                 class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline transition-colors">
                 GitHub
               </a>
               <a *ngIf="p.demoUrl" [href]="p.demoUrl" target="_blank" (click)="$event.stopPropagation()"
-                 class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline">
+                 class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline transition-colors">
                 Demo
               </a>
             </div>
@@ -142,31 +195,50 @@
     </div>
 
     <!-- List view -->
-    <div *ngIf="!loading && !error && viewMode === 'list'"
+    <div *ngIf="!loading && !error && filteredProjects.length > 0 && viewMode === 'list'"
          class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden">
       <div *ngFor="let p of filteredProjects; let last = last"
            (click)="openProject(p)"
-           [class]="'flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors ' + (last ? '' : 'border-b border-white/[0.07]')">
+           [class]="'flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors ' +
+             (last ? '' : 'border-b border-white/[0.07]')">
+        <!-- Icon -->
         <div class="w-10 h-10 rounded-[10px] flex items-center justify-center text-[20px] shrink-0"
              [style.background]="getBannerGradient(p)">
           {{ getProjectEmoji(p) }}
         </div>
+        <!-- Info -->
         <div class="flex-1 min-w-0">
           <div class="text-[14px] font-semibold truncate">{{ p.title }}</div>
           <div class="text-[12px] text-[#7A9BBF] mt-0.5">
-            {{ p.studentName }}<span *ngIf="p.course"> · {{ p.course.courseCode }}</span>
+            {{ p.studentName }}
+            <span *ngIf="p.course"> · {{ p.course.courseCode }}</span>
           </div>
         </div>
-        <div class="flex gap-1.5 shrink-0">
+        <!-- Topics -->
+        <div class="hidden md:flex gap-1.5 shrink-0">
           <span *ngFor="let t of (p.topics ?? []).slice(0, 3)"
                 class="text-[10px] px-2 py-[2px] rounded-full bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
             {{ t.name }}
           </span>
         </div>
-        <span class="text-[12px] text-[#7A9BBF] shrink-0">{{ formatDateRange(p.startDate, p.endDate) }}</span>
-        <span [class]="'text-[11px] px-2.5 py-[3px] rounded-full font-medium shrink-0 ' + getStatusClass(p.status)">
-          {{ p.status | titlecase }}
-        </span>
+        <!-- Status + date -->
+        <div class="shrink-0 text-right hidden sm:block">
+          <div [class]="'text-[11px] font-medium px-2.5 py-[3px] rounded-full border inline-block ' + getStatusClass(p.status)">
+            {{ p.status | titlecase }}
+          </div>
+          <div class="text-[11px] text-[#7A9BBF] mt-1">{{ formatDateRange(p.startDate, p.endDate) }}</div>
+        </div>
+        <!-- Links -->
+        <div class="shrink-0 flex gap-1.5">
+          <a *ngIf="p.githubUrl" [href]="p.githubUrl" target="_blank" (click)="$event.stopPropagation()"
+             class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline transition-colors">
+            GitHub
+          </a>
+          <a *ngIf="p.demoUrl" [href]="p.demoUrl" target="_blank" (click)="$event.stopPropagation()"
+             class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline transition-colors">
+            Demo
+          </a>
+        </div>
       </div>
     </div>
 
