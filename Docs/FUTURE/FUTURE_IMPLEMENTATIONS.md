@@ -189,4 +189,49 @@ Planned integrations with external APIs to enrich the portfolio showcase and red
 
 ---
 
+## Frontend
+
+### 21. Jobs and socials have no dashboard UI
+**What happened:** Backend endpoints for jobs and socials were built and work correctly, but no UI section was ever added to the student dashboard. Students have no way to view, add, edit, or delete their jobs or social links from the frontend.
+
+**Resolution:** Deferred — the dashboard UI sections for jobs and socials need to be built. The API endpoints are ready and follow the same pattern as projects.
+
+**Lesson:** Track frontend coverage alongside backend development. A working endpoint with no UI is invisible to users.
+
+---
+
+### 22. Course unenrollment status unknown
+**What happened:** It is unclear whether a DELETE endpoint and/or dashboard UI for unenrolling from a course exists. Students cannot currently unenroll from courses.
+
+**Resolution:** Needs investigation — confirm whether `DELETE /api/users/{userId}/courses/{id}` is implemented and whether the dashboard has a corresponding UI control.
+
+**Lesson:** Keep a clear inventory of which endpoints have corresponding UI. Missing either half makes the feature unusable.
+
+---
+
+### 23. Dashboard data doesn't load after login without a manual page refresh
+**What happened:** After OAuth login completes, navigating to the dashboard shows a permanent loading state. Data only appears after manually refreshing the page. The root cause is `loadProfile()` using `async/await` inside `ngOnInit` — Angular's change detection doesn't automatically fire after the awaited calls complete when the component initializes post-OAuth redirect.
+
+**Resolution:** Inject `ChangeDetectorRef` and call `cdr.detectChanges()` explicitly at the end of `loadProfile()` (in the `finally` block) to force Angular to re-evaluate the template after data loads.
+
+**Lesson:** When using `async/await` in Angular lifecycle hooks, change detection may not fire automatically after awaited operations complete. Always call `cdr.detectChanges()` in the `finally` block as an explicit safety net.
+
+---
+
+### 24. Microsoft logout lands on Microsoft's page instead of returning to the app
+**What happened:** Clicking logout when signed in with Microsoft calls `oauthService.logOut()`, which redirects the browser to Microsoft's account logout page. After the user confirms which account to log out of, the browser stays on Microsoft's page rather than returning to the application.
+
+**Resolution:** For Microsoft, bypass `oauthService.logOut()` and perform a local-only logout instead: clear auth storage manually and use `router.navigate()` to return to the app. Check `sessionStorage auth_provider` before deciding how to log out — Google does not have this problem because its discovery document does not expose an `end_session_endpoint` that the library invokes automatically.
+
+**Lesson:** `oauthService.logOut()` is not provider-neutral. For Microsoft it triggers an external redirect with no guaranteed return path. Handle Microsoft logout as a local state clear + Angular navigation.
+
+---
+
+### 25. Awards recipient email lookup always returns "user not found"
+**What happened:** The admin award creation form accepts a recipient email to identify which user receives the award. The lookup fetches `GET /api/users` and tries to match on `u.primaryEmail`, but that field is not included in the users list response — only `userId` and `name` are returned. Every lookup fails with "user email does not exist" regardless of whether the email is valid.
+
+**Resolution:** Update `GET /api/users` to include the primary identity email in each result by joining `UserIdentities` and projecting the entry where `IsPrimary == true`. The frontend lookup can then match against the returned `primaryEmail` field.
+
+**Lesson:** The USER/USER_IDENTITY model means email no longer lives on the USER row. Any endpoint that needs to expose a user's email must explicitly join and project it from `UserIdentities`. Verify that required fields are actually present in the response before building features that depend on them.
+
 *Last Updated: May 2026*
