@@ -1,4 +1,3 @@
-// frontend/src/app/features/courses/course-catalog-detail.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';

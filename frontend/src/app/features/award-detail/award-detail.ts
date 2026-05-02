@@ -1,4 +1,3 @@
-// frontend/src/app/features/award-detail/award-detail.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';

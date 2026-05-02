@@ -1,5 +1,4 @@
-// frontend/src/app/features/my-projects/project-detail.ts
-// C — Project detail. Shared component for two routes:
+// Project detail. Shared component for two routes:
 //   /dashboard/projects/:projectId  → own project (isOwnProject = true, editable)
 //   /projects/:userId/:projectId     → public view  (isOwnProject = false, read-only)
 

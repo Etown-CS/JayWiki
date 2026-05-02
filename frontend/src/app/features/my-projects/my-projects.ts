@@ -1,5 +1,4 @@
-// frontend/src/app/features/my-projects/my-projects.ts
-// B — Authenticated user's full project list at /dashboard/projects.
+// Authenticated user's full project list at /dashboard/projects.
 // Owns all state and API calls; delegates modal UI to ProjectFormModal.
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';

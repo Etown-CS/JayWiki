@@ -1,4 +1,3 @@
-// frontend/src/app/core/services/api.service.ts
 // Centralises auth header construction so no component duplicates this logic.
 
 import { Injectable } from '@angular/core';

@@ -1,4 +1,3 @@
-// frontend/src/app/core/models/models.ts
 // Shared interfaces used across all feature components
 
 export interface User {

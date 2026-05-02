@@ -1,4 +1,3 @@
-// frontend/src/app/features/events/event-detail.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';

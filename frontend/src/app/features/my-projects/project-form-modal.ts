@@ -1,4 +1,3 @@
-// frontend/src/app/features/my-projects/project-form-modal.ts
 // Standalone create/edit modal for projects.
 // Parent (MyProjects) owns all state and API calls.
 // This component owns only local input field values (topicInput, collaboratorEmail)

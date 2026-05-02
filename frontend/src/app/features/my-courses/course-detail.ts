@@ -1,5 +1,4 @@
-// frontend/src/app/features/my-courses/course-detail.ts
-// D — Detail view of a single course enrollment + its projects
+// Detail view of a single course enrollment + its projects
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';

@@ -1,4 +1,3 @@
-// frontend/src/app/features/my-events/my-events.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';

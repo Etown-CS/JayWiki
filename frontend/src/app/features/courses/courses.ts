@@ -1,4 +1,3 @@
-// frontend/src/app/features/courses/courses.ts
 // Public course catalog browser at /courses.
 // Shows all catalog entries as a searchable card grid.
 // Clicking a card navigates to /courses/:id for the detail view.
