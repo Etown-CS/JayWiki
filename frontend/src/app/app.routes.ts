@@ -95,6 +95,6 @@ export const routes: Routes = [
   },
 
   // ── Fallback ──────────────────────────────────────────────────────────────
-  { path: '',   redirectTo: 'projects', pathMatch: 'full' },
-  { path: '**', redirectTo: 'projects' },
+  { path: '',   redirectTo: 'explore', pathMatch: 'full' },
+  { path: '**', redirectTo: 'explore' },
 ];
