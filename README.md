@@ -27,7 +27,7 @@ For detailed guides, technical info, and step-by-step instructions, visit our wi
 - [Home](https://github.com/Etown-CS/JayWiki/wiki) – Overview, app idea, and motivation
 - [Core Features](https://github.com/Etown-CS/JayWiki/wiki/Core-Features) – All features available in JayWiki
 - [Installation & Setup](https://github.com/Etown-CS/JayWiki/wiki/Installation-&-Setup) – How to run the project locally
-- [Technical Stack](https://github.com/Etown-CS/JayWiki/wiki/Tech-Stack) – Frontend, backend, and libraries
+- [Technical Stack](https://github.com/Etown-CS/JayWiki/wiki/Technical-Stack) – Frontend, backend, and libraries
 - [Project Structure](https://github.com/Etown-CS/JayWiki/wiki/Project-Structure) – Directory structure and file organization
 - [API Documentation](https://github.com/Etown-CS/JayWiki/wiki/API-Documentation) – Comprehensive API reference with examples
 - [External Resources](https://github.com/Etown-CS/JayWiki/wiki/External-Resources) – Azure, Google, and Microsoft service accounts
