@@ -213,13 +213,19 @@
             Add topics to your projects to see your tech stack here.
           </div>
           <div class="flex flex-wrap gap-1.5">
-            <span *ngFor="let t of techTopics"
+            <span *ngFor="let t of visibleTechTopics"
                   [class]="'text-[11px] px-2.5 py-1 rounded-full border ' +
                     (t.hot ? 'bg-[#4A90C4]/15 border-[#4A90C4]/30 text-[#4A90C4]'
                            : 'bg-white/[0.03] border-white/[0.07] text-[#7A9BBF]')">
               {{ t.name }}
             </span>
           </div>
+          <button *ngIf="techTopics.length > 25"
+                  (click)="showAllTech = true"
+                  class="mt-3 text-[11px] text-[#4A90C4] hover:text-white transition-colors
+                         cursor-pointer border-0 bg-transparent">
+            Show all {{ techTopics.length }} technologies →
+          </button>
         </div>
 
         <!-- Awards -->
@@ -256,7 +262,7 @@
           </div>
         </div>
 
-        <!-- Admin Panel — instructor/admin only -->
+        <!-- Admin Panel — own profile + instructor/admin only -->
         <app-admin-panel *ngIf="isOwnProfile && (user.role === 'instructor' || user.role === 'admin')">
         </app-admin-panel>
 
@@ -310,6 +316,37 @@
                        hover:bg-[#5ba3d9] transition-colors disabled:opacity-60">
           {{ editSaving ? 'Saving…' : 'Save Changes' }}
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── All Technologies modal ─────────────────────────────────────────────── -->
+  <div *ngIf="showAllTech"
+       class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px)"
+       (click)="showAllTech = false">
+    <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] p-7
+                w-full max-w-lg shadow-2xl"
+         (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-playfair text-[20px] font-bold">
+          All Technologies
+          <span class="ml-2 text-[14px] font-normal text-[#7A9BBF]">{{ techTopics.length }}</span>
+        </h2>
+        <button (click)="showAllTech = false"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-[#7A9BBF]
+                       hover:text-white hover:bg-white/5 transition-all cursor-pointer
+                       border-0 bg-transparent text-[20px] leading-none">
+          ×
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-1.5 max-h-[400px] overflow-y-auto pr-1">
+        <span *ngFor="let t of techTopics"
+              [class]="'text-[11px] px-2.5 py-1 rounded-full border ' +
+                (t.hot ? 'bg-[#4A90C4]/15 border-[#4A90C4]/30 text-[#4A90C4]'
+                       : 'bg-white/[0.03] border-white/[0.07] text-[#7A9BBF]')">
+          {{ t.name }}
+        </span>
       </div>
     </div>
   </div>

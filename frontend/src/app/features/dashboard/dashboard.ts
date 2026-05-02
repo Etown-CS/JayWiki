@@ -38,6 +38,9 @@ export class Dashboard implements OnInit {
   // /students/:id    → public profile (no guard)
   isOwnProfile = false;
 
+  // Show all tech topics or just the top 25
+  showAllTech = false;
+
   // Edit modal — own profile only
   isEditMode   = false;
   editName     = '';
@@ -258,8 +261,11 @@ export class Dashboard implements OnInit {
     }
     return Array.from(freq.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 12)
       .map(([name, count]) => ({ name, hot: count > 1 }));
+  }
+
+  get visibleTechTopics() {
+    return this.techTopics.slice(0, 25);
   }
 
   goToMyPortfolio(): void {
