@@ -62,7 +62,7 @@
       <div class="ml-auto flex items-center gap-3">
         <button *ngIf="isFiltered"
                 (click)="clearFilters()"
-                class="text-[12px] text-[#C8102E] border border-[#C8102E]/30 bg-[#C8102E]/8 hover:bg-[#C8102E]/15 px-3 py-[5px] rounded-full cursor-pointer transition-colors">
+                class="text-[12px] text-[#7A9BBF] hover:text-white border border-white/[0.07] hover:border-white/20 px-3 py-[5px] rounded-full cursor-pointer transition-colors bg-transparent">
           Clear filters
         </button>
         <span class="text-[12px] text-[#7A9BBF]">
@@ -199,7 +199,7 @@
          class="bg-[#162338] border border-white/[0.07] rounded-[14px] overflow-hidden">
       <div *ngFor="let p of filteredProjects; let last = last"
            (click)="openProject(p)"
-           [class]="'flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors ' +
+           [class]="'group flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors ' +
              (last ? '' : 'border-b border-white/[0.07]')">
         <!-- Icon -->
         <div class="w-10 h-10 rounded-[10px] flex items-center justify-center text-[20px] shrink-0"
@@ -208,28 +208,28 @@
         </div>
         <!-- Info -->
         <div class="flex-1 min-w-0">
-          <div class="text-[14px] font-semibold truncate">{{ p.title }}</div>
+          <div class="text-[14px] font-semibold truncate group-hover:text-[#4A90C4] transition-colors">{{ p.title }}</div>
           <div class="text-[12px] text-[#7A9BBF] mt-0.5">
             {{ p.studentName }}
             <span *ngIf="p.course"> · {{ p.course.courseCode }}</span>
           </div>
         </div>
         <!-- Topics -->
-        <div class="hidden md:flex gap-1.5 shrink-0">
+        <div class="hidden md:flex gap-1.5 shrink-0 w-[180px]">
           <span *ngFor="let t of (p.topics ?? []).slice(0, 3)"
                 class="text-[10px] px-2 py-[2px] rounded-full bg-[#4A90C4]/10 text-[#4A90C4] border border-[#4A90C4]/20">
             {{ t.name }}
           </span>
         </div>
         <!-- Status + date -->
-        <div class="shrink-0 text-right hidden sm:block">
+        <div class="shrink-0 text-right hidden sm:block w-[130px]">
           <div [class]="'text-[11px] font-medium px-2.5 py-[3px] rounded-full border inline-block ' + getStatusClass(p.status)">
             {{ p.status | titlecase }}
           </div>
           <div class="text-[11px] text-[#7A9BBF] mt-1">{{ formatDateRange(p.startDate, p.endDate) }}</div>
         </div>
         <!-- Links -->
-        <div class="shrink-0 flex gap-1.5">
+        <div class="shrink-0 flex gap-1.5 w-[110px] justify-end">
           <a *ngIf="p.githubUrl" [href]="p.githubUrl" target="_blank" (click)="$event.stopPropagation()"
              class="text-[11px] text-[#4A90C4] px-2 py-[3px] rounded-md border border-[#4A90C4]/20 bg-[#4A90C4]/6 hover:bg-[#4A90C4]/15 no-underline transition-colors">
             GitHub

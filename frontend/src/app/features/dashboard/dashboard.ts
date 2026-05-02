@@ -1,6 +1,6 @@
 // frontend/src/app/features/dashboard/dashboard.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -29,7 +29,7 @@ export class Dashboard implements OnInit {
   projects: Project[]               = [];
   courses:  CourseEnrollment[]      = [];
   events:   EventSummary[]          = [];
-  awards: Award[] = [];
+  awards:   Award[]                 = [];
 
   // ── UI state ──────────────────────────────────────────────────────────────
   loading = true;
@@ -54,6 +54,7 @@ export class Dashboard implements OnInit {
     private cdr:         ChangeDetectorRef,
     private route:       ActivatedRoute,
     public  router:      Router,
+    private location:    Location,
   ) {}
 
   ngOnInit(): void {
@@ -94,11 +95,11 @@ export class Dashboard implements OnInit {
 
       const results = await firstValueFrom(
         forkJoin({
-          socials:  this.http.get<Social[]>         (`${base}/socials`,  { headers }).pipe(catchError(() => of([]))),
-          projects: this.http.get<Project[]>        (`${base}/projects`, { headers }).pipe(catchError(() => of([]))),
-          courses:  this.http.get<CourseEnrollment[]>(`${base}/courses`, { headers }).pipe(catchError(() => of([]))),
-          events:   this.http.get<EventSummary[]>   (`${base}/events`,  { headers }).pipe(catchError(() => of([]))),
-          awards: this.http.get<Award[]>(`${base}/awards`, { headers }).pipe(catchError(() => of([]))),
+          socials:  this.http.get<Social[]>          (`${base}/socials`,  { headers }).pipe(catchError(() => of([]))),
+          projects: this.http.get<Project[]>         (`${base}/projects`, { headers }).pipe(catchError(() => of([]))),
+          courses:  this.http.get<CourseEnrollment[]>(`${base}/courses`,  { headers }).pipe(catchError(() => of([]))),
+          events:   this.http.get<EventSummary[]>    (`${base}/events`,   { headers }).pipe(catchError(() => of([]))),
+          awards:   this.http.get<Award[]>           (`${base}/awards`,   { headers }).pipe(catchError(() => of([]))),
         })
       );
       this.socials  = results.socials;
@@ -155,7 +156,6 @@ export class Dashboard implements OnInit {
       if (this.selectedFile) {
         const form = new FormData();
         form.append('file', this.selectedFile);
-        // Pass only Authorization — browser sets Content-Type + boundary for multipart.
         const uploadResult = await firstValueFrom(
           this.http.post<{ profileImageUrl: string }>(
             `${environment.apiBaseUrl}/api/users/me/profile-image`,
@@ -191,6 +191,12 @@ export class Dashboard implements OnInit {
       this.editSaving = false;
       this.cdr.detectChanges();
     }
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  goBack(): void {
+    this.location.back();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-<!-- frontend/src/app/features/event-detail/event-detail.html -->
+<!-- frontend/src/app/features/events/event-detail.html -->
 <app-nav></app-nav>
 
 <div class="min-h-screen bg-[#0D1B2E] text-white font-dm-sans">
@@ -15,6 +15,13 @@
 
   <!-- ── Content ───────────────────────────────────────────────────────────── -->
   <div *ngIf="!loading && event" class="max-w-3xl mx-auto px-6 py-10 space-y-8">
+
+    <!-- Back button -->
+    <button (click)="goBack()"
+            class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
+                   transition-colors cursor-pointer border-0 bg-transparent">
+      ← Back
+    </button>
 
     <!-- ── Event header ───────────────────────────────────────────────────── -->
     <div class="bg-[#162338] border border-white/10 rounded-2xl p-8">
@@ -84,7 +91,6 @@
       <div class="flex flex-wrap gap-3">
         <div *ngFor="let reg of event.registrations"
              class="flex items-center gap-2 bg-[#0D1B2E] rounded-lg px-3 py-2">
-          <!-- Avatar -->
           <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0
                       bg-[#4A90C4]/20 flex items-center justify-center text-xs text-[#4A90C4] font-semibold">
             <img *ngIf="reg.profileImageUrl" [src]="reg.profileImageUrl"
@@ -105,7 +111,6 @@
       <div class="space-y-3">
         <div *ngFor="let award of event.awards"
              class="flex gap-4 bg-[#0D1B2E] rounded-xl p-4">
-          <!-- Trophy icon -->
           <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
             <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -134,7 +139,6 @@
         <h2 class="text-sm font-semibold text-white/60 uppercase tracking-wider">
           Media
         </h2>
-        <!-- Add media button — authenticated users only -->
         <button
           *ngIf="auth.isLoggedIn && !showMediaForm"
           (click)="showMediaForm = true"
@@ -149,8 +153,6 @@
       <!-- Upload form -->
       <div *ngIf="showMediaForm"
            class="bg-[#0D1B2E] border border-white/10 rounded-xl p-5 mb-5 space-y-4">
-
-        <!-- Media type selector -->
         <div class="flex gap-2">
           <button *ngFor="let type of ['image','video','link']"
                   (click)="mediaType = type; mediaFile = null; mediaFileName = ''; mediaLinkUrl = ''"
@@ -162,7 +164,6 @@
           </button>
         </div>
 
-        <!-- Link URL input -->
         <div *ngIf="mediaType === 'link'">
           <input
             type="url"
@@ -172,7 +173,6 @@
                    text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#4A90C4]"/>
         </div>
 
-        <!-- File input -->
         <div *ngIf="mediaType !== 'link'">
           <label class="block cursor-pointer">
             <div class="border border-dashed border-white/20 rounded-lg px-4 py-6 text-center
@@ -195,10 +195,8 @@
           </label>
         </div>
 
-        <!-- Error -->
         <p *ngIf="mediaError" class="text-[#C8102E] text-xs">{{ mediaError }}</p>
 
-        <!-- Actions -->
         <div class="flex gap-2 pt-1">
           <button
             (click)="submitMedia()"
@@ -216,12 +214,8 @@
 
       <!-- Media grid -->
       <div *ngIf="event.media.length > 0" class="space-y-3">
-
-        <!-- Images -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div *ngFor="let m of event.media" [ngSwitch]="m.mediaType" class="relative group">
-
-            <!-- Image -->
             <ng-container *ngSwitchCase="'image'">
               <div class="relative rounded-xl overflow-hidden aspect-video bg-[#0D1B2E]">
                 <img [src]="m.url" [alt]="'Event image'" class="w-full h-full object-cover"/>
@@ -239,8 +233,6 @@
                 </button>
               </div>
             </ng-container>
-
-            <!-- Video -->
             <ng-container *ngSwitchCase="'video'">
               <div class="relative rounded-xl overflow-hidden aspect-video bg-[#0D1B2E]">
                 <video [src]="m.url" controls class="w-full h-full object-cover"></video>
@@ -258,11 +250,9 @@
                 </button>
               </div>
             </ng-container>
-
           </div>
         </div>
 
-        <!-- Links (separate row) -->
         <div *ngFor="let m of event.media" class="group">
           <div *ngIf="m.mediaType === 'link'"
                class="flex items-center justify-between bg-[#0D1B2E] rounded-xl px-4 py-3">
@@ -290,10 +280,8 @@
             </button>
           </div>
         </div>
-
       </div>
 
-      <!-- Empty media state -->
       <div *ngIf="event.media.length === 0 && !showMediaForm"
            class="text-center py-8 text-white/25 text-sm">
         No media attached yet.

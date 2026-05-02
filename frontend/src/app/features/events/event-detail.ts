@@ -1,6 +1,6 @@
 // frontend/src/app/features/events/event-detail.ts
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -8,7 +8,6 @@ import { firstValueFrom } from 'rxjs';
 import { NavComponent } from '../../core/nav/nav';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-// Alias to avoid naming collision with the component class.
 import {
   EventDetail as EventDetailData,
   EventMedia,
@@ -29,12 +28,12 @@ export class EventDetail implements OnInit {
   loading = true;
   error   = '';
 
-  // ── Registration ── names match HTML bindings ─────────────────────────────
+  // ── Registration ──────────────────────────────────────────────────────────
   isRegistered    = false;
   registerLoading = false;
   registerError   = '';
 
-  // ── Media upload ── names match HTML bindings ─────────────────────────────
+  // ── Media upload ──────────────────────────────────────────────────────────
   showMediaForm  = false;
   mediaType      = 'image';
   mediaLinkUrl   = '';
@@ -45,11 +44,12 @@ export class EventDetail implements OnInit {
   deletingMediaId: number | null = null;
 
   constructor(
-    private route: ActivatedRoute,
-    private http:  HttpClient,
-    public  auth:  AuthService,
-    private api:   ApiService,
-    private cdr:   ChangeDetectorRef,
+    private route:    ActivatedRoute,
+    private http:     HttpClient,
+    public  auth:     AuthService,
+    private api:      ApiService,
+    private cdr:      ChangeDetectorRef,
+    private location: Location,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -72,12 +72,6 @@ export class EventDetail implements OnInit {
     }
   }
 
-  /**
-   * Determines whether the logged-in user is already registered.
-   * auth.currentUser is set by upsertUser() (OAuth) or by dashboard.ts (local).
-   * If still null (direct URL visit before dashboard loads), falls back to
-   * GET /api/users/me and caches the result into shared state.
-   */
   private async deriveRegistrationState(): Promise<void> {
     if (!this.auth.isLoggedIn || !this.event) return;
 
@@ -99,6 +93,12 @@ export class EventDetail implements OnInit {
     }
 
     this.isRegistered = this.event.registrations.some(r => r.userId === myId);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  goBack(): void {
+    this.location.back();
   }
 
   // ── Registration toggle ───────────────────────────────────────────────────
@@ -221,7 +221,6 @@ export class EventDetail implements OnInit {
     });
   }
 
-  /** Alias used by award list in the template. */
   formatAwardDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'long', day: 'numeric', year: 'numeric',

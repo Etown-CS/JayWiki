@@ -139,7 +139,7 @@ export class Projects implements OnInit {
   setView(v: 'grid' | 'list'): void { this.viewMode = v; }
 
   openProject(p: GalleryProject): void {
-    this.router.navigate(['/gallery', p.studentId, p.projectId]);
+    this.router.navigate(['/projects', p.studentId, p.projectId]);
   }
 
   getProjectEmoji(p: GalleryProject): string {

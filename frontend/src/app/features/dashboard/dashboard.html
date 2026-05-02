@@ -14,6 +14,14 @@
   <div *ngIf="!loading && !error && user"
        class="max-w-[1300px] mx-auto px-6 md:px-10 py-9">
 
+    <!-- Back button — public profiles only -->
+    <button *ngIf="!isOwnProfile"
+            (click)="goBack()"
+            class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
+                   transition-colors mb-6 cursor-pointer border-0 bg-transparent">
+      ← Back
+    </button>
+
     <!-- ── Profile header ─────────────────────────────────────────────────── -->
     <div class="bg-[#162338] border border-white/[0.07] rounded-[18px] p-6 md:p-8 mb-6
                 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
@@ -49,7 +57,7 @@
         </div>
       </div>
 
-      <!-- Stat pills — Projects | Courses | Technologies | Events | Awards (when > 0) -->
+      <!-- Stat pills -->
       <div class="shrink-0 flex flex-col items-end gap-3">
         <button *ngIf="isOwnProfile" (click)="openEdit()"
                 class="px-4 py-1.5 rounded-lg text-[12px] font-medium border border-white/[0.07]
@@ -194,7 +202,7 @@
       <!-- RIGHT SIDEBAR -->
       <div class="space-y-4">
 
-        <!-- Technologies — count in header -->
+        <!-- Technologies -->
         <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5">
           <div class="flex items-center justify-between mb-3.5">
             <div class="text-[13px] font-semibold">🛠 Technologies</div>
@@ -215,7 +223,7 @@
           </div>
         </div>
 
-        <!-- Awards — always shown -->
+        <!-- Awards -->
         <div class="bg-[#162338] border border-white/[0.07] rounded-[14px] p-5">
           <div class="text-[13px] font-semibold mb-3.5">🏆 Awards</div>
           <div *ngIf="awards.length === 0" class="text-[12px] text-[#7A9BBF]/60 italic">No awards yet.</div>

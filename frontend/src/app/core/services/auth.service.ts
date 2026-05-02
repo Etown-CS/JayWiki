@@ -172,7 +172,7 @@ export class AuthService {
     this.log('Logging out...');
     this.oauthService.logOut();
     this.clearAuthStorage();
-    this.router.navigate(['/login']);
+    this.router.navigate(['/explore']);
   }
 
   get isLoggedIn(): boolean {
