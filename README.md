@@ -30,6 +30,9 @@ For detailed guides, technical info, and step-by-step instructions, visit our wi
 - [Technical Stack](https://github.com/Etown-CS/JayWiki/wiki/Technical-Stack) – Frontend, backend, and libraries
 - [Project Structure](https://github.com/Etown-CS/JayWiki/wiki/Project-Structure) – Directory structure and file organization
 - [API Documentation](https://github.com/Etown-CS/JayWiki/wiki/API-Documentation) – Comprehensive API reference with examples
+- [System Architecture](https://github.com/Etown-CS/JayWiki/wiki/System-Architecture) – Azure infrastructure and three-tier architecture diagram
+- [Authentication Flow](https://github.com/Etown-CS/JayWiki/wiki/Authentication-Flow) – OAuth and local auth flows with sequence diagrams
+- [Database Schema](https://github.com/Etown-CS/JayWiki/wiki/Database-Schema) – Entity overview, relationships, and migration history
 - [External Resources](https://github.com/Etown-CS/JayWiki/wiki/External-Resources) – Azure, Google, and Microsoft service accounts
 - [Future Implementations](https://github.com/Etown-CS/JayWiki/wiki/Future-Implementations) – Planned features and enhancements
 
