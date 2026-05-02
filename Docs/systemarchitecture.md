@@ -24,7 +24,7 @@ flowchart TB
         
         subgraph Data["Data Tier"]
             SQL["Azure SQL Database<br/>Relational Data Storage<br/>(Users, Projects, Courses, Events)"]
-            Blob["Azure Blob Storage<br/>Multimedia Content<br/>(Profile Images, Media)"]
+            Blob["Azure Blob Storage<br/>Multimedia Content<br/>(Profile Images, Project & Event Media)"]
         end
     end
     
@@ -52,7 +52,7 @@ flowchart TB
     %% CI/CD Flow
     GH --> Actions
     Actions -.->|"Deploy Frontend"| SWA
-    Actions -.->|"Deploy Backend<br/>+ EF Migrations"| AppService
+    Actions -.->|"Deploy Backend"| AppService
     
     %% Styling
     classDef azureService fill:#0078D4,stroke:#004578,stroke-width:2px,color:#fff
@@ -80,7 +80,7 @@ flowchart TB
 
 **Data Tier (Blue):**
 - **Azure SQL Database:** Stores structured data (users, identities, projects, courses, events)
-- **Azure Blob Storage:** Stores profile images and project media
+- **Azure Blob Storage:** Stores profile images, project media, and event media across three public-access containers (`profile-images`, `project-media`, `event-media`)
 
 **External Authentication Providers (Red):**
 - **Google OAuth 2.0:** Personal Google accounts; frontend sends ID token to backend
@@ -88,7 +88,7 @@ flowchart TB
 
 **CI/CD Pipeline (Orange):**
 - **GitHub:** Version control and source repository
-- **GitHub Actions:** Automated build, test, and deployment workflows
+- **GitHub Actions:** Automated build and deployment workflows — two pipelines run on every push to `main`, one for the frontend and one for the backend. EF Core migrations are applied manually via `dotnet ef database update`, not automatically by CI/CD.
 
 ## Authentication Providers Summary
 
@@ -111,5 +111,5 @@ flowchart TB
 1. **Three-Tier Separation:** Clear separation of concerns between presentation, application, and data layers
 2. **Cloud-Native:** Fully managed Azure services with automatic scaling and high availability
 3. **Triple Authentication:** Google OAuth, Microsoft Entra ID (common endpoint), and local email/password — all validated via a policy-based multi-scheme JWT selector
-4. **Automated Deployment:** CI/CD pipeline ensures consistent deployments via GitHub Actions
-5. **Cross-Region Configuration:** App Service and SQL Database should be co-located in the same Azure region to minimize latency and avoid cross-region data transfer costs
+4. **Automated Deployment:** CI/CD pipeline ensures consistent deployments via GitHub Actions on every push to `main`
+5. **Cross-Region Configuration:** The current deployment has App Service in East US and SQL Database in West US 2, adding ~60–80ms cross-region latency per query. All resources should be co-located in a single region before scaling to production to reduce this to ~1–5ms.

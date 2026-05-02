@@ -93,8 +93,9 @@ Before starting, verify your school email works with these services:
 - Download: https://desktop.github.com/
 - Used for: Branch management, commits, PRs without CLI
 
-☐ **7. Install SQL Server Management Studio (SSMS) - Optional but helpful**
-- Download: https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms
+☐ **7. Install Azure Data Studio or SSMS (optional but helpful)**
+- Azure Data Studio: https://azure.microsoft.com/en-us/products/data-studio
+- SSMS: https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms
 - Used for: Viewing and managing your database locally
 
 ### Account Setup
@@ -186,29 +187,55 @@ Before starting, verify your school email works with these services:
 - Run: `dotnet add package Azure.Storage.Blobs`
 - Run: `dotnet add package Swashbuckle.AspNetCore`
 
-☐ **3. Create a `.env` file in the Backend folder**
-- This stores secrets locally and is never committed to GitHub
-- Add to `.gitignore`:
-  ```
-  .env
-  ```
-- Template:
-  ```
-  ConnectionStrings__DefaultConnection=your-connection-string
-  Authentication__Google__ClientId=your-google-client-id
-  Authentication__Microsoft__ClientId=your-microsoft-client-id
-  JWT_SIGNING_KEY=your-random-32-char-minimum-key
-  AZURE_BLOB_CONNECTION_STRING=your-blob-connection-string
-  Cors__AllowedOrigins__0=http://localhost:4200
-  ```
+☐ **3. Create a `.env` file in the repository root**
+
+> **⚠️ IMPORTANT: The `.env` file belongs in the repository root — NOT inside `/Backend`.**
+> Both `Program.cs` (backend) and `set-env.mjs` (frontend) look for it there.
+> The backend checks the current working directory and one level up; `set-env.mjs` always reads from one level above `frontend/`.
+
+- Add `.env` to your `.gitignore` — it must never be committed to version control
+- Use `.env.example` as your template:
+
+```env
+# ── Database ────────────────────────────────────────────────────────
+ConnectionStrings__DefaultConnection=your-connection-string
+
+# ── Azure Blob Storage ───────────────────────────────────────────────
+AZURE_BLOB_CONNECTION_STRING=your-blob-connection-string
+
+# ── Auth — Backend ───────────────────────────────────────────────────
+Authentication__Google__ClientId=your-google-client-id
+Authentication__Microsoft__ClientId=your-microsoft-client-id
+Authentication__Microsoft__TenantId=common
+
+# ── Auth — Frontend (read by set-env.mjs) ────────────────────────────
+GOOGLE_CLIENT_ID=your-google-client-id
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_TENANT_ID=common
+MICROSOFT_API_SCOPE=openid profile email
+
+# ── JWT ──────────────────────────────────────────────────────────────
+JWT_SIGNING_KEY=your-random-32-char-minimum-key
+
+# ── Frontend ─────────────────────────────────────────────────────────
+# ⚠️ This is required — set-env.mjs will exit with an error if missing
+NG_API_BASE_URL=http://localhost:5227
+
+# ── CORS ─────────────────────────────────────────────────────────────
+Cors__AllowedOrigins__0=http://localhost:4200
+```
 
 > **⚠️ NOTE:** Environment variables use `__` (double underscore) as the separator and **always override** `appsettings.json`. If a value isn't loading, check `.env` first.
+
+> **⚠️ NOTE:** `NG_API_BASE_URL` is required. The `set-env.mjs` pre-build script will exit immediately with an error if this variable is not set.
 
 ☐ **4. Test .NET API**
 - Run: `dotnet run`
 - Open browser: http://localhost:5227/swagger
 - ✓ Success = You should see Swagger API documentation
 - Press Ctrl+C to stop server
+
+> **⚠️ NOTE:** Swashbuckle.AspNetCore v10 ships with Microsoft.OpenApi v2.0 which can cause the Swagger UI to fail or render incorrectly. If Swagger does not load, use [Postman](https://www.postman.com/) for API testing instead — all endpoints function correctly regardless.
 
 ### Phase 4: Setup Azure Resources
 
@@ -255,6 +282,9 @@ Before starting, verify your school email works with these services:
 - Go to Storage Account → Containers
 - Create: `profile-images` (Blob public access)
 - Create: `project-media` (Blob public access)
+- Create: `event-media` (Blob public access)
+
+> **Note:** Public blob access is required on all three containers so that uploaded image URLs can be used directly in `<img>` tags without expiring signed URLs.
 
 ### Phase 5: Connect Everything Locally
 
@@ -315,7 +345,7 @@ dotnet ef database update
 - Source: GitHub → Authorize
 - Select your org, repo, branch: main
 - Build provider: GitHub Actions → Save
-- ✓ Creates `.github/workflows/azure-backend.yml` automatically
+- ✓ Creates a backend workflow file in `.github/workflows/` automatically
 
 ☐ **4. Create Static Web App for Frontend**
 - Search "Static Web Apps" → Click "+ Create"
@@ -331,7 +361,17 @@ dotnet ef database update
 
 - Click "Review + create" → "Create"
 
-☐ **5. Test Automatic Deployment**
+☐ **5. Add Frontend Environment Secrets to GitHub**
+- Go to your repository → Settings → Secrets and variables → Actions
+- Add the following secrets (used by the Static Web Apps workflow at build time):
+  * `GOOGLE_CLIENT_ID`
+  * `GOOGLE_CLIENT_SECRET` (dummy value — required by `angular-oauth2-oidc`, never sent to Google)
+  * `MICROSOFT_CLIENT_ID`
+  * `MICROSOFT_TENANT_ID`
+  * `MICROSOFT_API_SCOPE`
+  * `NG_API_BASE_URL` (your production backend URL)
+
+☐ **6. Test Automatic Deployment**
 ```bash
 git add .
 git commit -m "Test deployment"
@@ -398,8 +438,12 @@ git push origin main
   ```powershell
   [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
   ```
+- Or in terminal:
+  ```bash
+  openssl rand -base64 32
+  ```
 - Add to `.env`: `JWT_SIGNING_KEY=your-generated-key`
-- Add to Azure App Service Application Settings with same key
+- Add to Azure App Service Application Settings with the same key
 
 ☐ **2. Create `Models/JwtSigningConfig.cs`**
 ```csharp
@@ -424,7 +468,7 @@ builder.Services.AddSingleton(new JwtSigningConfig
 ☐ **4. Create `AuthController.cs`**
 - `POST /api/auth/register` — create account, return JWT
 - `POST /api/auth/login` — verify BCrypt hash, return JWT
-- `POST /api/auth/link` — link local identity to existing OAuth account
+- `POST /api/auth/link` — link local identity to existing authenticated account
 
 ☐ **5. Update Angular interceptor**
 - Check `sessionStorage auth_provider`
@@ -438,7 +482,7 @@ builder.Services.AddSingleton(new JwtSigningConfig
 
 ### Backend Working:
 ☐ `dotnet run` starts without errors
-☐ Swagger loads at `http://localhost:5227/swagger`
+☐ Swagger loads at `http://localhost:5227/swagger` (or use Postman if Swagger fails — see Swashbuckle note above)
 ☐ Database connection works (check terminal for EF errors)
 ☐ `POST /api/users/me` creates user + identity rows in DB
 ☐ Deployed to Azure App Service
@@ -476,7 +520,7 @@ builder.Services.AddSingleton(new JwtSigningConfig
 
 Once the checklist is complete:
 
-- Build API controllers (Projects, Courses, Events, Jobs, Socials)
+- Build API controllers (Projects, Courses, Events, Socials, Awards)
 - Create Angular components (dashboard, profile, project detail pages)
 - Implement file upload to Azure Blob Storage
 - Style with Tailwind CSS
@@ -513,9 +557,17 @@ Once the checklist is complete:
 - Confirm `sessionStorage auth_provider` is set to `"local"` after login
 - Confirm interceptor reads `localStorage local_token` for local provider
 
-### Issue: "Swagger 500 error on startup"
-- If you have an `IFormFile` endpoint: wrap parameter in a class instead of using it directly
+### Issue: "`set-env.mjs` fails with 'NG_API_BASE_URL is not set'"
+- Confirm `.env` exists in the repository root (not inside `/Backend` or `/frontend`)
+- Confirm `NG_API_BASE_URL` is present and not empty
+
+### Issue: "Swagger 500 error on startup (IFormFile)"
+- If you have a file upload endpoint: wrap `IFormFile` in a class instead of using it directly as a parameter
 - Add `[Consumes("multipart/form-data")]` to the file upload endpoint only — not the whole controller
+
+### Issue: "Swagger UI fails to load or generates errors (not IFormFile-related)"
+- This is a known breaking change in Swashbuckle.AspNetCore v10 with Microsoft.OpenApi v2.0
+- Use [Postman](https://www.postman.com/) for API testing instead — all endpoints function correctly
 
 ### Issue: "Azure AD B2C setup failing"
 - Stop — do not use B2C unless IT confirmed you have tenant admin access
@@ -560,7 +612,7 @@ Once the checklist is complete:
 - Angular: https://angular.dev/docs
 - ASP.NET Core: https://docs.microsoft.com/en-us/aspnet/core/
 - Entity Framework Core: https://docs.microsoft.com/en-us/ef/core/
-- azure-oauth2-oidc: https://github.com/manfredsteyer/angular-oauth2-oidc
+- angular-oauth2-oidc: https://github.com/manfredsteyer/angular-oauth2-oidc
 - Google Cloud Console: https://console.cloud.google.com
 - Microsoft App Registration: https://portal.azure.com
 - Azure Blob Storage SDK: https://docs.microsoft.com/en-us/azure/storage/blobs/
@@ -572,6 +624,6 @@ Once the checklist is complete:
 
 ### See Also:
 - `LESSONS_LEARNED.md` — gotchas, surprises, and non-obvious decisions encountered during development
-- `DB_SCHEMA.md` — full entity relationship diagram and schema documentation
-- `AUTH_FLOW.md` — detailed authentication flow diagrams for all three providers
-- `ARCHITECTURE.md` — system architecture and Azure infrastructure overview
+- `Docs/ERD/DB_SCHEMA.md` — full entity relationship diagram and schema documentation
+- `oauthauthenticationflow.md` — detailed authentication flow diagrams for all three providers
+- `systemarchitecture.md` — system architecture and Azure infrastructure overview

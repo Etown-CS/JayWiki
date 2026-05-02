@@ -1,7 +1,7 @@
 # JayWiki Tech Stack Summary
 
 **Project:** Campus Portfolio Management System
-**Last Updated:** April 2026
+**Last Updated:** May 2026
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Technology | What | Used For | Why |
 |------------|------|----------|-----|
-| **Angular 17+** | Web framework for building the user interface | All pages, forms, navigation, user interactions | Microsoft's preferred frontend framework, great for enterprise apps with complex forms |
+| **Angular 21+** | Web framework for building the user interface | All pages, forms, navigation, user interactions | Microsoft's preferred frontend framework, great for enterprise apps with complex forms |
 | **TypeScript** | Typed JavaScript | All frontend code | Type safety, better developer experience, catches errors early |
-| **Tailwind CSS v3.4.1** | Utility-first CSS framework | Styling and responsive design | Fast development, consistent design, easy to maintain. v4 incompatible with Angular 17 — pinned to v3.4.1 |
+| **Tailwind CSS v3.4.1** | Utility-first CSS framework | Styling and responsive design | Fast development, consistent design, easy to maintain. Pinned to v3.4.1 for stability — v4 has compatibility issues with this project's build configuration |
 
 ---
 
@@ -29,7 +29,7 @@
 
 | Technology | What | Used For | Why |
 |------------|------|----------|-----|
-| **Azure SQL Database** | Cloud-hosted SQL Server database | Storing users, identities, projects, courses, events, jobs, socials, media | Native Microsoft cloud database, scales well, secure, integrates with campus |
+| **Azure SQL Database** | Cloud-hosted SQL Server database | Storing users, identities, projects, courses, events, socials, and media metadata | Native Microsoft cloud database, scales well, secure, integrates with campus |
 
 ---
 
@@ -68,12 +68,13 @@
 
 | Technology | What | Used For | Why |
 |------------|------|----------|-----|
-| **Azure Blob Storage** | Cloud object storage for files | Profile images, project media, event photos | Scalable, secure, integrates with Azure, CDN support |
+| **Azure Blob Storage** | Cloud object storage for files | Profile images, project media, event media | Scalable, secure, integrates with Azure, CDN support |
 
 **Implementation Notes:**
 - Profile images uploaded via `POST /api/users/me/profile-image` (5MB max, JPEG/PNG/GIF/WEBP)
 - Old blob deleted after new URL is safely persisted (best-effort cleanup)
 - Media URLs stored in `PROJECT_MEDIA` and `EVENT_MEDIA` database tables
+- Three storage containers: `profile-images`, `project-media`, `event-media` — all with public blob access
 - Unique blob naming to prevent collisions
 
 ---
@@ -100,13 +101,14 @@
 
 ### Current Azure Deployment
 
-**Resource Group:** `campus-portfolio-rg`
+**Resource Group:** `jaywiki-rg`
 
 **Resources:**
 - **SQL Server:** `jaywiki-server-ms` (West US 2)
-- **SQL Database:** Basic tier, 5 DTUs (West US 2)
+- **SQL Database:** `jaywiki-db` — Basic tier, 5 DTUs (West US 2)
 - **App Service:** `jaywiki-api-ms` — Linux, B1 tier (East US)
-- **Storage Account:** Azure Blob Storage (profile images + media)
+- **Static Web App:** `jaywiki-frontend` (East US 2)
+- **Storage Account:** `jaywikims` — Azure Blob Storage (profile images, project media, event media)
 - **Subscription:** Azure for Students
 
 **⚠️ Performance Note:** App Service (East US) and SQL Database (West US 2) are in different regions, adding ~60-80ms cross-region latency per database query. Acceptable for development — should be co-located in production.
@@ -120,7 +122,7 @@
 | **VS Code** | Code editor | Writing code, debugging | Best support for .NET and Angular development |
 | **Git + GitHub** | Version control and collaboration platform | Source control, code collaboration | Required for project, branch-per-feature workflow with PRs |
 | **GitHub Actions** | Automated CI/CD workflow system | Building and deploying code to Azure automatically | Free, integrated with GitHub, auto-deploys on every push to main |
-| **Postman / Swagger** | API testing tools | Testing backend endpoints | Swagger auto-generated from ASP.NET, Postman for manual testing |
+| **Postman** | API testing tool | Testing backend endpoints | Primary API testing tool — Swashbuckle v10 ships with a Microsoft.OpenApi v2.0 breaking change that causes Swagger UI failures; Postman is the reliable fallback |
 | **GitHub Desktop** | Git GUI client | Branch management, commits, PRs | Simplifies Git workflow without CLI |
 
 ---
@@ -137,7 +139,7 @@
 ## Tech Stack at a Glance
 
 ```
-Frontend:     Angular 17+ + TypeScript + Tailwind CSS v3.4.1
+Frontend:     Angular 21+ + TypeScript + Tailwind CSS v3.4.1
 Backend:      ASP.NET Core Web API (.NET 10) + Entity Framework Core 10.0.5
 Database:     Azure SQL Database (Basic 5 DTUs)
 Auth:         angular-oauth2-oidc + ASP.NET Core JWT Bearer
@@ -178,7 +180,7 @@ DevOps:       Git + GitHub + GitHub Actions
 - Valuable job market skills (.NET + Azure)
 - Strong typing catches errors during development
 - Entity Framework simplifies database operations
-- Swagger auto-generates API documentation
+- All endpoints documented and testable via Postman
 
 ### ✅ Production Ready
 - Can be deployed to campus infrastructure post-graduation
@@ -227,8 +229,8 @@ DevOps:       Git + GitHub + GitHub Actions
 - **Cost justified:** ~$13/month is acceptable for a production-grade capstone project
 
 ### Why Tailwind CSS v3.4.1 specifically?
-- Tailwind CSS v4 is incompatible with Angular 17 build system
-- v3.4.1 is the latest stable v3 release and fully supported
+- Pinned to v3.4.1 for build stability — v4 introduced breaking changes with this project's PostCSS configuration
+- v3.4.1 is fully supported and covers all styling needs
 
 ---
 
@@ -238,8 +240,9 @@ DevOps:       Git + GitHub + GitHub Actions
 **Current Setup:**
 - SQL Database: West US 2
 - App Service: East US
+- Static Web App: East US 2
 
-**Impact:** Cross-region latency ~60-80ms per database query. Not critical for development workloads.
+**Impact:** App Service and SQL Database in different regions adds ~60-80ms cross-region latency per database query. Not critical for development workloads.
 
 **Future Optimization:** Co-locate all resources in a single region (East US 2 or West US 2) to reduce latency to ~1-5ms and eliminate cross-region transfer costs.
 
@@ -257,7 +260,7 @@ DevOps:       Git + GitHub + GitHub Actions
 
 ## Project Timeline
 
-**Deadline:** Mid-April 2026 (academic submission)
-**Handoff:** Post-graduation to E-town School of Engineering and Computer Science
+**Deadline:** May 2026 (academic submission)
+**Handoff:** Post-graduation to Elizabethtown College School of Engineering and Computer Science
 **Implementation:** 8-week milestone plan
-**Current Status:** Active development — authentication, database schema, and core backend APIs complete
+**Current Status:** ✅ Complete — submitted, deployed, and handed off to ECS department

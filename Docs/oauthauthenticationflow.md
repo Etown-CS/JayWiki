@@ -131,10 +131,10 @@ sequenceDiagram
     participant Backend as ASP.NET Core API
     participant DB as Azure SQL Database
 
-    Note over User,DB: User already logged in via Google or Microsoft
+    Note over User,DB: User already authenticated (any provider)
 
     User->>Frontend: Submit link form<br/>{ email, password }
-    Frontend->>Backend: POST /api/auth/link<br/>(Authorization: Bearer existing OAuth token)
+    Frontend->>Backend: POST /api/auth/link<br/>(Authorization: Bearer existing token)
     Backend->>Backend: Resolve current user from token<br/>(provider + email from iss + claims)
     Backend->>DB: Check target email not already taken<br/>as a local identity
     Backend->>DB: INSERT INTO UserIdentities<br/>(Provider='local', IsPrimary=false)
@@ -186,7 +186,7 @@ flowchart TD
 ### OAuth (Google / Microsoft)
 
 **Phase 1 — Provider Selection**
-User clicks Google or Microsoft button. Frontend sets `auth_provider` in `sessionStorage` and configures `angular-oauth2-oidc` with the appropriate `AuthConfig`.
+User clicks Google or Microsoft button. Frontend clears any existing auth storage, sets `auth_provider` in `sessionStorage`, and configures `angular-oauth2-oidc` with the appropriate `AuthConfig`.
 
 **Phase 2 — OAuth Provider Authentication**
 Frontend uses PKCE code flow. User authenticates with their provider. Google returns an ID token; Microsoft returns an access token. Both are JWTs containing user claims.
@@ -198,7 +198,7 @@ Frontend uses PKCE code flow. User authenticates with their provider. Google ret
 After OAuth completes, `tryRestoreSession()` calls `POST /api/users/me` with the token. The backend creates or updates the user's `UserIdentity` and `User` rows. If the same email exists under another provider, the new identity is linked to the existing user automatically.
 
 **Phase 5 — Navigation**
-After successful upsert, the frontend navigates to `/dashboard`.
+After a successful upsert, the frontend navigates to `/dashboard` — but only if the current path is an entry point (`/`, `/login`, or `/index.html`). If the user is already on a valid in-app route, no redirect occurs and the session is simply restored in place.
 
 ### Local (Email + Password)
 
@@ -211,8 +211,8 @@ Login and registration are handled entirely by the frontend form — no OAuth re
 ### Frontend (angular-oauth2-oidc)
 - **PKCE:** Prevents authorization code interception attacks
 - **State parameter:** Prevents CSRF during OAuth callback
-- **Provider isolation:** `auth_provider` in `sessionStorage` ensures correct token type is sent per provider
-- **Interceptor:** Automatically attaches the correct Bearer token based on active provider
+- **Storage isolation:** `auth_provider` in `sessionStorage` ensures the correct token type is sent per provider; existing auth storage is cleared before each new login to prevent stale state conflicts
+- **Interceptor:** Automatically attaches the correct Bearer token based on the active provider
 
 ### Backend (ASP.NET Core JWT Bearer)
 - **Triple authentication schemes:** "Google", "Microsoft", "Local" — each with independent validation
@@ -239,7 +239,7 @@ Login and registration are handled entirely by the frontend form — no OAuth re
 - **Issuer:** `https://login.microsoftonline.com/common/v2.0` (common endpoint)
 - **App registration:** Personal `etownjaywiki@outlook.com` account — not school tenant (school IT blocks tenant-level registration)
 - **Supported accounts:** Organizational (@etown.edu) AND personal Microsoft accounts
-- **Scopes:** `openid profile email`
+- **Scopes:** `openid profile email` + `MICROSOFT_API_SCOPE` (configured via environment variable)
 - **Token type sent to backend:** Access token
 - **`skipIssuerCheck: true`:** Required — common endpoint tokens have tenant-specific issuers
 - **Backend `ValidateIssuer: false`:** Issuer validation disabled; security maintained via signature + audience validation
