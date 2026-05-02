@@ -2,8 +2,17 @@
 
 <div class="min-h-screen bg-[#0D1B2E] text-white font-dm-sans">
 
+  <!-- Back button — always visible -->
+  <div class="max-w-3xl mx-auto px-6 pt-8">
+    <button (click)="goBack()"
+            class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
+                   transition-colors cursor-pointer border-0 bg-transparent">
+      ← Back
+    </button>
+  </div>
+
   <!-- ── Loading ───────────────────────────────────────────────────────────── -->
-  <div *ngIf="loading" class="flex justify-center items-center min-h-[60vh]">
+  <div *ngIf="loading" class="flex justify-center items-center min-h-[50vh]">
     <div class="w-8 h-8 border-2 border-[#4A90C4] border-t-transparent rounded-full animate-spin"></div>
   </div>
 
@@ -13,14 +22,7 @@
   </div>
 
   <!-- ── Content ───────────────────────────────────────────────────────────── -->
-  <div *ngIf="!loading && event" class="max-w-3xl mx-auto px-6 py-10 space-y-8">
-
-    <!-- Back button -->
-    <button (click)="goBack()"
-            class="flex items-center gap-1.5 text-[12px] text-[#7A9BBF] hover:text-white
-                   transition-colors cursor-pointer border-0 bg-transparent">
-      ← Back
-    </button>
+  <div *ngIf="!loading && event" class="max-w-3xl mx-auto px-6 pb-10 pt-6 space-y-8">
 
     <!-- ── Event header ───────────────────────────────────────────────────── -->
     <div class="bg-[#162338] border border-white/10 rounded-2xl p-8">
@@ -89,14 +91,16 @@
       </h2>
       <div class="flex flex-wrap gap-3">
         <div *ngFor="let reg of event.registrations"
-             class="flex items-center gap-2 bg-[#0D1B2E] rounded-lg px-3 py-2">
+             (click)="navigateToStudent(reg.userId)"
+             class="flex items-center gap-2 bg-[#0D1B2E] rounded-lg px-3 py-2
+                    cursor-pointer hover:bg-white/[0.05] transition-colors group">
           <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0
                       bg-[#4A90C4]/20 flex items-center justify-center text-xs text-[#4A90C4] font-semibold">
             <img *ngIf="reg.profileImageUrl" [src]="reg.profileImageUrl"
                  [alt]="reg.name" class="w-full h-full object-cover"/>
             <span *ngIf="!reg.profileImageUrl">{{ getInitials(reg.name) }}</span>
           </div>
-          <span class="text-sm text-white/80">{{ reg.name }}</span>
+          <span class="text-sm text-white/80 group-hover:text-[#4A90C4] transition-colors">{{ reg.name }}</span>
         </div>
       </div>
     </div>

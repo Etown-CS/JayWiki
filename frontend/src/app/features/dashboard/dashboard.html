@@ -257,7 +257,7 @@
         </div>
 
         <!-- Admin Panel — instructor/admin only -->
-        <app-admin-panel *ngIf="user.role === 'instructor' || user.role === 'admin'">
+        <app-admin-panel *ngIf="isOwnProfile && (user.role === 'instructor' || user.role === 'admin')">
         </app-admin-panel>
 
       </div>

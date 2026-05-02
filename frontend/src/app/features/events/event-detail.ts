@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router} from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { NavComponent } from '../../core/nav/nav';
@@ -44,6 +44,7 @@ export class EventDetail implements OnInit {
 
   constructor(
     private route:    ActivatedRoute,
+    private router:   Router,
     private http:     HttpClient,
     public  auth:     AuthService,
     private api:      ApiService,
@@ -52,6 +53,7 @@ export class EventDetail implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    window.scrollTo(0, 0);
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) { this.error = 'No event ID.'; this.loading = false; return; }
     await this.loadEvent(+id);
@@ -98,6 +100,10 @@ export class EventDetail implements OnInit {
 
   goBack(): void {
     this.location.back();
+  }
+
+  navigateToStudent(userId: number): void {
+    this.router.navigate(['/students', userId]);
   }
 
   // ── Registration toggle ───────────────────────────────────────────────────

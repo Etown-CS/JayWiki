@@ -3,30 +3,31 @@
 
   <div class="max-w-[1300px] mx-auto px-10 py-9">
 
-    <!-- Breadcrumb -->
-    <div class="flex items-center gap-2 text-[13px] text-[#7A9BBF] mb-5">
-      <div class="flex items-center gap-2 text-[13px] text-[#7A9BBF] mb-5">
-        <span (click)="goBack()" class="cursor-pointer hover:text-white transition-colors">
-          ← Back
-        </span>
-      </div>
-    </div>
+    <!-- Back -->
+    <button (click)="goBack()"
+            class="flex items-center gap-2 text-[13px] text-[#7A9BBF] hover:text-white
+                   transition-colors mb-5 cursor-pointer border-0 bg-transparent">
+      ← Back
+    </button>
 
     <!-- Loading / Error -->
     <div *ngIf="loading" class="flex justify-center py-24 text-[14px] text-[#7A9BBF]">Loading project…</div>
-    <div *ngIf="!loading && error" class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4 text-[13px] text-[#f28b9b]">{{ error }}</div>
+    <div *ngIf="!loading && error"
+         class="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl px-6 py-4 text-[13px] text-[#f28b9b]">
+      {{ error }}
+    </div>
 
     <ng-container *ngIf="!loading && !error && project">
 
       <!-- ── PROJECT HEADER ──────────────────────────────────────────────────── -->
       <div class="bg-[#162338] border border-white/[0.07] rounded-2xl px-8 py-7 mb-6 relative overflow-hidden">
-        <!-- Top accent bar -->
-        <div class="absolute top-0 left-0 right-0 h-[3px]" style="background:linear-gradient(90deg,#4A90C4,#C8102E)"></div>
+        <div class="absolute top-0 left-0 right-0 h-[3px]"
+             style="background:linear-gradient(90deg,#4A90C4,#C8102E)"></div>
 
         <div class="flex justify-between items-start">
-          <!-- Icon + title -->
           <div class="flex items-center gap-4">
-            <div class="w-14 h-14 bg-[#4A90C4]/12 border border-[#4A90C4]/20 rounded-[14px] flex items-center justify-center text-[26px] shrink-0">
+            <div class="w-14 h-14 bg-[#4A90C4]/12 border border-[#4A90C4]/20 rounded-[14px]
+                        flex items-center justify-center text-[26px] shrink-0">
               {{ getProjectEmoji(project.projectType) }}
             </div>
             <div>
@@ -38,17 +39,11 @@
                 <span *ngIf="project.course" class="text-white/20">·</span>
                 <span *ngIf="project.course">{{ project.course.semester }} {{ project.course.year }}</span>
               </div>
-              <span [class]="'inline-block mt-2 text-[12px] font-medium px-3 py-[4px] rounded-full border ' + getStatusClass(project.status)">
+              <span [class]="'inline-block mt-2 text-[12px] font-medium px-3 py-[4px] rounded-full border '
+                             + getStatusClass(project.status)">
                 {{ project.status | titlecase }}
               </span>
             </div>
-          </div>
-
-          <!-- Actions (own project only) -->
-          <div *ngIf="isOwnProject" class="flex gap-2.5 shrink-0">
-            <button class="px-[18px] py-2 rounded-lg text-[13px] font-medium bg-transparent border border-white/[0.07] text-[#7A9BBF] hover:text-white hover:border-white/20 transition-all cursor-pointer">
-              Edit Project
-            </button>
           </div>
         </div>
 
@@ -66,20 +61,27 @@
             <label class="text-[11px] text-[#7A9BBF] uppercase tracking-[0.8px] block mb-[3px]">Ended</label>
             <span class="text-[13px] text-white/80 font-medium">{{ formatDate(project.endDate) }}</span>
           </div>
-          <div *ngIf="(project.collaborators ?? []).length > 0">
-            <label class="text-[11px] text-[#7A9BBF] uppercase tracking-[0.8px] block mb-[3px]">Collaborators</label>
-            <span class="text-[13px] text-white/80 font-medium">{{ (project.collaborators ?? []).length }}</span>
+          <div>
+            <label class="text-[11px] text-[#7A9BBF] uppercase tracking-[0.8px] block mb-[3px]">Team</label>
+            <span class="text-[13px] text-white/80 font-medium">
+              {{ 1 + (project.collaborators ?? []).length }}
+              member{{ (1 + (project.collaborators ?? []).length) !== 1 ? 's' : '' }}
+            </span>
           </div>
         </div>
 
         <!-- External links -->
         <div class="flex gap-2.5 mt-4">
           <a *ngIf="project.githubUrl" [href]="project.githubUrl" target="_blank"
-             class="flex items-center gap-2 px-3.5 py-[7px] rounded-lg border border-white/[0.07] text-[12px] text-[#7A9BBF] hover:border-[#4A90C4]/40 hover:text-[#4A90C4] transition-all no-underline cursor-pointer">
+             class="flex items-center gap-2 px-3.5 py-[7px] rounded-lg border border-white/[0.07]
+                    text-[12px] text-[#7A9BBF] hover:border-[#4A90C4]/40 hover:text-[#4A90C4]
+                    transition-all no-underline cursor-pointer">
             🐙 GitHub Repository
           </a>
           <a *ngIf="project.demoUrl" [href]="project.demoUrl" target="_blank"
-             class="flex items-center gap-2 px-3.5 py-[7px] rounded-lg border border-white/[0.07] text-[12px] text-[#7A9BBF] hover:border-[#4A90C4]/40 hover:text-[#4A90C4] transition-all no-underline cursor-pointer">
+             class="flex items-center gap-2 px-3.5 py-[7px] rounded-lg border border-white/[0.07]
+                    text-[12px] text-[#7A9BBF] hover:border-[#4A90C4]/40 hover:text-[#4A90C4]
+                    transition-all no-underline cursor-pointer">
             🌐 Live Demo
           </a>
         </div>
@@ -88,11 +90,11 @@
       <!-- ── CONTENT GRID ────────────────────────────────────────────────────── -->
       <div class="grid grid-cols-[1fr_300px] gap-5">
 
-        <!-- LEFT: description, topics, media -->
-        <div>
+        <!-- LEFT COLUMN -->
+        <div class="flex flex-col gap-4">
 
           <!-- Description -->
-          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px] mb-4">
+          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
             <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
               <span>📝</span> About this Project
             </div>
@@ -101,8 +103,77 @@
             </p>
           </div>
 
-          <!-- Topics / Technologies -->
-          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px] mb-4" *ngIf="(project.topics ?? []).length > 0">
+          <!-- ── TEAM (Students) ──────────────────────────────────────────── -->
+          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
+            <div class="text-[14px] font-semibold mb-4 flex items-center gap-2">
+              <span>👥</span> Students
+              <span class="ml-1 text-[11px] font-normal text-[#7A9BBF]">
+                {{ 1 + (project.collaborators ?? []).length }}
+                member{{ (1 + (project.collaborators ?? []).length) !== 1 ? 's' : '' }}
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-2">
+
+              <!-- Owner -->
+              <div *ngIf="owner"
+                   (click)="navigateToStudent(owner.userId)"
+                   class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]
+                          cursor-pointer hover:bg-[#4A90C4]/5 hover:border-[#4A90C4]/20 transition-all group">
+                <ng-container *ngIf="owner.profileImageUrl; else ownerInitials">
+                  <img [src]="owner.profileImageUrl" [alt]="owner.name"
+                       class="w-10 h-10 rounded-full object-cover ring-2 ring-white/10
+                              group-hover:ring-[#4A90C4]/40 transition-all shrink-0" />
+                </ng-container>
+                <ng-template #ownerInitials>
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-[12px]
+                              font-bold text-white shrink-0 ring-2 ring-white/10
+                              group-hover:ring-[#4A90C4]/40 transition-all"
+                       style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+                    {{ getInitials(owner.name) }}
+                  </div>
+                </ng-template>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[14px] font-semibold group-hover:text-[#4A90C4] transition-colors truncate">
+                    {{ owner.name }}
+                  </div>
+                  <div class="text-[11px] text-[#7A9BBF] mt-0.5">View profile →</div>
+                </div>
+                <span class="text-[10px] px-2.5 py-[3px] rounded-full font-medium shrink-0
+                             bg-[#4A90C4]/15 text-[#4A90C4] border border-[#4A90C4]/20">
+                  Owner
+                </span>
+              </div>
+
+              <!-- Collaborators -->
+              <div *ngFor="let c of (project.collaborators ?? [])"
+                   (click)="navigateToStudent(c.userId)"
+                   class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]
+                          cursor-pointer hover:bg-[#4A90C4]/5 hover:border-[#4A90C4]/20 transition-all group">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-[12px]
+                            font-bold text-white shrink-0 ring-2 ring-white/10
+                            group-hover:ring-[#4A90C4]/40 transition-all"
+                     style="background:linear-gradient(135deg,#4A90C4,#243D61)">
+                  {{ getInitials(c.name) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[14px] font-semibold group-hover:text-[#4A90C4] transition-colors truncate">
+                    {{ c.name }}
+                  </div>
+                  <div class="text-[11px] text-[#7A9BBF] mt-0.5">View profile →</div>
+                </div>
+                <span class="text-[10px] px-2.5 py-[3px] rounded-full font-medium shrink-0
+                             bg-white/[0.05] text-[#7A9BBF] border border-white/[0.07]">
+                  Collaborator
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Technologies & Topics -->
+          <div *ngIf="(project.topics ?? []).length > 0"
+               class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
             <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
               <span>🏷</span> Technologies & Topics
             </div>
@@ -119,11 +190,11 @@
             <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
               <span>🖼</span> Media
             </div>
-            <div class="grid grid-cols-3 gap-2.5">
-              <div *ngFor="let m of (project.media ?? [])"
-                   class="rounded-lg overflow-hidden cursor-pointer">
+            <div *ngIf="(project.media ?? []).length > 0" class="grid grid-cols-3 gap-2.5">
+              <div *ngFor="let m of (project.media ?? [])" class="rounded-lg overflow-hidden cursor-pointer">
                 <a [href]="m.url" target="_blank" class="no-underline">
-                  <div class="pt-[60%] bg-[#1E2E45] border border-white/[0.07] rounded-lg relative flex items-center justify-center">
+                  <div class="pt-[60%] bg-[#1E2E45] border border-white/[0.07] rounded-lg relative
+                              flex items-center justify-center">
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
                       <div class="text-[22px] mb-1">{{ getMediaIcon(m.mediaType) }}</div>
                       <div class="text-[10px] text-[#7A9BBF] capitalize">{{ m.mediaType }}</div>
@@ -131,41 +202,41 @@
                   </div>
                 </a>
               </div>
-
-              <!-- Add media (own project only) -->
-              <div *ngIf="isOwnProject"
-                   class="rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer hover:border-[#4A90C4]/40 transition-colors"
-                   style="padding-top:60%; position:relative">
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-[#7A9BBF]">
-                  <div class="text-[22px]">+</div>
-                  <div class="text-[10px]">Add Media</div>
-                </div>
-              </div>
             </div>
-            <div *ngIf="(project.media ?? []).length === 0 && !isOwnProject"
+            <div *ngIf="(project.media ?? []).length === 0"
                  class="text-[13px] text-[#7A9BBF]/60 italic text-center py-4">
               No media added.
             </div>
           </div>
+
         </div>
 
-        <!-- RIGHT: project info, course info, contributors -->
-        <div>
+        <!-- RIGHT SIDEBAR -->
+        <div class="flex flex-col gap-4">
 
-          <!-- Project info -->
-          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px] mb-4">
-            <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2"><span>ℹ</span> Project Info</div>
-            <div *ngIf="project.course" class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
+          <!-- Project Info -->
+          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
+            <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
+              <span>ℹ</span> Project Info
+            </div>
+            <div *ngIf="project.course"
+                 class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
               <span class="text-[12px] text-[#7A9BBF]">Course</span>
               <span class="text-[13px] text-white/80 font-medium">{{ project.course.courseCode }}</span>
             </div>
-            <div *ngIf="project.course" class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
+            <div *ngIf="project.course"
+                 class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
               <span class="text-[12px] text-[#7A9BBF]">Semester</span>
-              <span class="text-[13px] text-white/80 font-medium">{{ project.course.semester }} {{ project.course.year }}</span>
+              <span class="text-[13px] text-white/80 font-medium">
+                {{ project.course.semester }} {{ project.course.year }}
+              </span>
             </div>
-            <div *ngIf="project.course?.instructor" class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
+            <div *ngIf="project.course?.instructor"
+                 class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
               <span class="text-[12px] text-[#7A9BBF]">Instructor</span>
-              <span class="text-[13px] text-white/80 font-medium text-right max-w-[140px]">{{ project.course!.instructor }}</span>
+              <span class="text-[13px] text-white/80 font-medium text-right max-w-[140px]">
+                {{ project.course!.instructor }}
+              </span>
             </div>
             <div class="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
               <span class="text-[12px] text-[#7A9BBF]">Type</span>
@@ -173,31 +244,71 @@
             </div>
             <div class="flex justify-between items-center py-2.5">
               <span class="text-[12px] text-[#7A9BBF]">Status</span>
-              <span [class]="'text-[12px] font-medium px-2.5 py-[3px] rounded-full border ' + getStatusClass(project.status)">
+              <span [class]="'text-[12px] font-medium px-2.5 py-[3px] rounded-full border '
+                             + getStatusClass(project.status)">
                 {{ project.status | titlecase }}
               </span>
             </div>
           </div>
 
-          <!-- Contributors -->
-          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]" *ngIf="(project.collaborators ?? []).length > 0">
-            <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2"><span>👤</span> Contributors</div>
-            <div *ngFor="let c of project.collaborators; let last = last"
-                 [class]="'flex items-center gap-3 py-3 ' + (last ? '' : 'border-b border-white/[0.07]')">
-              <div class="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
-                   style="background:linear-gradient(135deg,#4A90C4,#243D61)">
-                {{ getInitials(c.name) }}
+          <!-- Awards -->
+          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
+            <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
+              <span>🏆</span> Awards
+            </div>
+            <div *ngIf="ownerAwards.length === 0"
+                 class="text-[12px] text-[#7A9BBF]/60 italic">
+              No awards yet.
+            </div>
+            <div class="flex flex-col gap-2">
+              <div *ngFor="let a of ownerAwards"
+                   class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                <div class="w-7 h-7 rounded-lg bg-[#F0C040]/10 flex items-center justify-center
+                            shrink-0 text-[12px]">🥇</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-white truncate">{{ a.title }}</div>
+                  <div *ngIf="a.description"
+                       class="text-[10px] text-[#7A9BBF] mt-0.5 line-clamp-1">{{ a.description }}</div>
+                  <div class="text-[10px] text-[#7A9BBF]/60 mt-0.5">{{ formatDate(a.awardedAt) }}</div>
+                </div>
               </div>
-              <div>
-                <div class="text-[13px] font-medium">{{ c.name }}</div>
-                <div class="text-[11px] text-[#7A9BBF] mt-[2px]">Collaborator</div>
-              </div>
+            </div>
+          </div>
+
+          <!-- Events -->
+          <div class="bg-[#162338] border border-white/[0.07] rounded-xl p-[22px]">
+            <div class="text-[14px] font-semibold mb-3.5 flex items-center gap-2">
+              <span>📅</span> Events
+            </div>
+            <div *ngIf="ownerEvents.length === 0"
+                 class="text-[12px] text-[#7A9BBF]/60 italic">
+              No events registered.
+            </div>
+            <div class="flex flex-col gap-2">
+              <a *ngFor="let e of ownerEvents"
+                 [routerLink]="['/events', e.eventId]"
+                 class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]
+                        hover:bg-[#4A90C4]/5 hover:border-[#4A90C4]/20 transition-all no-underline group">
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-white truncate
+                              group-hover:text-[#4A90C4] transition-colors">
+                    {{ e.title }}
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-1">
+                    <span [class]="'text-[9px] px-2 py-0.5 rounded-full ' + getCategoryClass(e.category)">
+                      {{ e.category }}
+                    </span>
+                    <span class="text-[10px] text-[#7A9BBF]/60">
+                      {{ formatDate(e.eventDate) }}
+                    </span>
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
 
         </div>
       </div>
     </ng-container>
-
   </div>
 </div>

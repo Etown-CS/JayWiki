@@ -33,6 +33,7 @@ export class CourseDetail implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    window.scrollTo(0, 0);
     this.courseId = +this.route.snapshot.paramMap.get('courseId')!;
     this.load();
   }

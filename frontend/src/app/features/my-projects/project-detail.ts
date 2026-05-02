@@ -1,7 +1,3 @@
-// Project detail. Shared component for two routes:
-//   /dashboard/projects/:projectId  → own project (isOwnProject = true, editable)
-//   /projects/:userId/:projectId     → public view  (isOwnProject = false, read-only)
-
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -10,35 +6,38 @@ import { NavComponent } from '../../core/nav/nav';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
-import { Project } from '../../core/models/models';
-import { firstValueFrom } from 'rxjs';
+import { Project, User, Award, EventSummary } from '../../core/models/models';
+import { firstValueFrom, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, NavComponent],
+  imports: [CommonModule, NavComponent, RouterLink],
   templateUrl: './project-detail.html',
 })
 export class ProjectDetail implements OnInit {
-  project: Project | null = null;
-  loading = true;
-  error = '';
+  project:     Project      | null = null;
+  owner:       User         | null = null;
+  ownerAwards: Award[]             = [];
+  ownerEvents: EventSummary[]      = [];
+  loading      = true;
+  error        = '';
   isOwnProject = false;
 
   constructor(
-    private http: HttpClient,
-    private api: ApiService,
+    private http:        HttpClient,
+    private api:         ApiService,
     private authService: AuthService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-    private location: Location,
+    private route:       ActivatedRoute,
+    private router:      Router,
+    private cdr:         ChangeDetectorRef,
+    private location:    Location,
   ) {}
 
   ngOnInit(): void {
-    // /dashboard/projects/:projectId → own
-    // /projects/:userId/:projectId   → public
-    const projectId = +this.route.snapshot.paramMap.get('projectId')!;
+    window.scrollTo(0, 0);
+    const projectId   = +this.route.snapshot.paramMap.get('projectId')!;
     const routeUserId = this.route.snapshot.paramMap.get('userId');
     this.isOwnProject = routeUserId === null;
     this.load(projectId, routeUserId ? +routeUserId : null);
@@ -48,6 +47,7 @@ export class ProjectDetail implements OnInit {
     this.loading = true;
     try {
       let userId: number;
+
       if (this.isOwnProject) {
         const headers = this.api.authHeaders();
         const me = await firstValueFrom(
@@ -68,6 +68,26 @@ export class ProjectDetail implements OnInit {
           )
         );
       }
+
+      // Fetch owner profile, awards, and events in parallel
+      const [ownerData, awardsData, eventsData] = await Promise.all([
+        firstValueFrom(
+          this.http.get<User>(`${environment.apiBaseUrl}/api/users/${userId}`)
+        ),
+        firstValueFrom(
+          this.http.get<Award[]>(`${environment.apiBaseUrl}/api/users/${userId}/awards`)
+            .pipe(catchError(() => of([] as Award[])))
+        ),
+        firstValueFrom(
+          this.http.get<EventSummary[]>(`${environment.apiBaseUrl}/api/users/${userId}/events`)
+            .pipe(catchError(() => of([] as EventSummary[])))
+        ),
+      ]);
+
+      this.owner       = ownerData;
+      this.ownerAwards = awardsData;
+      this.ownerEvents = eventsData;
+
     } catch {
       this.error = 'Failed to load project.';
     } finally {
@@ -75,6 +95,18 @@ export class ProjectDetail implements OnInit {
       this.cdr.detectChanges();
     }
   }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  navigateToStudent(userId: number): void {
+    this.router.navigate(['/students', userId]);
+  }
+
+  goBack(): void {
+    this.location.back();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   getInitials(name: string): string {
     return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
@@ -100,6 +132,16 @@ export class ProjectDetail implements OnInit {
     return classes[index % classes.length];
   }
 
+  getCategoryClass(cat: string): string {
+    const map: Record<string, string> = {
+      academic: 'bg-[#4A90C4]/15 text-[#4A90C4]',
+      club:     'bg-[#2ECC71]/15 text-[#2ECC71]',
+      sport:    'bg-[#F0C040]/15 text-[#F0C040]',
+      other:    'bg-white/10 text-white/60',
+    };
+    return map[cat] ?? map['other'];
+  }
+
   getMediaIcon(type: string): string {
     return { image: '🖼', video: '▶️', link: '🔗' }[type] ?? '📎';
   }
@@ -107,9 +149,5 @@ export class ProjectDetail implements OnInit {
   formatDate(d?: string): string {
     if (!d) return 'Present';
     return new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  }
-
-  goBack(): void {
-    this.location.back();
   }
 }
