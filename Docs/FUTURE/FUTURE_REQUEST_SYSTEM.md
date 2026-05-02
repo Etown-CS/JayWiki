@@ -1,136 +1,79 @@
-# Future Feature: Event & Award Request System
+# Future Request System — JayWiki
 
-**Status:** Planned — not yet implemented  
-**Target:** Post-v1.0 enhancement  
-**Related roles:** All users (submitters), Instructor / Admin (approvers)
+← Back to [FUTURE_IMPLEMENTATIONS.md](./FUTURE_IMPLEMENTATIONS.md)
+
+A way for students and alumni to submit requests to admins through the application, covering additions or changes to courses, awards, and events that they cannot modify directly.
 
 ---
 
-## Overview
+## Problem
 
-Currently, only instructors and admins can create events and assign awards directly through the Admin Panel. A future version will introduce a **request/approval workflow** that allows any authenticated user to submit a request for a new event or award, which an admin then reviews and approves or rejects.
+Students and alumni currently have no way to contact admins or flag issues through JayWiki itself. If a student needs a course added to the catalog, an award recorded, or an event corrected, there is no in-app path to do so — they would need to reach out via email outside the system.
+
+---
+
+## Goals
+
+- Give students a structured, in-app way to request changes they cannot make themselves
+- Give admins a single queue to review, action, and respond to requests
+- Reduce ad-hoc email back-and-forth between students and department staff
+
+---
+
+## Request Types
+
+| Type | Example |
+|------|---------|
+| Course catalog addition | "CS490 — Senior Seminar isn't in the catalog" |
+| Course catalog correction | "CS301 is listed under the wrong department" |
+| Award addition | "I received an award at the Fall 2025 Showcase but it's not listed" |
+| Event addition | "Club event from Spring 2025 is missing" |
+| Account issue | "I have two accounts and need them merged" |
+| Other | Free-text for anything not covered above |
 
 ---
 
 ## Proposed Flow
 
-### Submitting a Request (All Users)
-- A **"Request an Event"** button on the Events page
-- A **"Nominate for Award"** button on the Awards section of the dashboard and student profiles
-- Users fill out a form with the relevant details (see schema below)
-- Request is saved with status `pending` and is visible to the submitter
-
-### Review (Instructor / Admin)
-- Admin Panel shows a **Pending Requests** section with all outstanding submissions
-- Admin can **Approve** (automatically creates the Event or Award in the real tables) or **Reject** (with an optional rejection reason)
-- Only admins can **delete** approved events and awards
-
-### Post-Decision Visibility
-- Submitter can see the status of their request (`pending`, `approved`, `rejected`) on their dashboard
-- Rejection reason (if provided) is visible to the submitter
-- Approved requests link to the created Event or Award
+1. Student submits a request form in the app (type, description, optional reference IDs)
+2. Request is stored in a new `REQUEST` table with status `pending`
+3. Admin sees pending requests in the admin request queue (see `FUTURE_ADMIN_PAGE.md`)
+4. Admin reviews and takes action: approve (and makes the change), reject, or request more info
+5. Optional: notify the student in-app or via email when their request is resolved
 
 ---
 
-## Database Schema
+## Schema Addition (Proposed)
 
-### New Table: `EVENT_REQUEST`
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `EventRequestId` | int PK | Auto-increment |
-| `SubmittedByUserId` | int FK → USER | Required |
-| `Status` | string | `pending` / `approved` / `rejected` |
-| `Title` | string | Required |
-| `Description` | string | Optional |
-| `Category` | string | `club` / `sport` / `academic` / `other` |
-| `ProposedDate` | DateTime | Required |
-| `RejectionReason` | string | Optional — set on rejection |
-| `ReviewedByUserId` | int FK → USER | Null until reviewed |
-| `ReviewedAt` | DateTime | Null until reviewed |
-| `ApprovedEventId` | int FK → EVENT | Null until approved |
-| `SubmittedAt` | DateTime | Auto UTC |
-
-### New Table: `AWARD_REQUEST`
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `AwardRequestId` | int PK | Auto-increment |
-| `SubmittedByUserId` | int FK → USER | Required |
-| `RecipientUserId` | int FK → USER | Required — who the award is for |
-| `Status` | string | `pending` / `approved` / `rejected` |
-| `Title` | string | Required |
-| `Description` | string | Optional |
-| `LinkedEventId` | int FK → EVENT | Optional |
-| `RejectionReason` | string | Optional |
-| `ReviewedByUserId` | int FK → USER | Null until reviewed |
-| `ReviewedAt` | DateTime | Null until reviewed |
-| `ApprovedAwardId` | int FK → AWARD | Null until approved |
-| `SubmittedAt` | DateTime | Auto UTC |
+```
+REQUEST {
+    int RequestId PK
+    int UserId FK          -- submitting user
+    string Type            -- "course_catalog" | "award" | "event" | "account" | "other"
+    string Description     -- free-text details
+    string Status          -- "pending" | "approved" | "rejected" | "info_needed"
+    string AdminNote       -- optional response from admin
+    DateTime SubmittedAt
+    DateTime ResolvedAt    -- nullable
+}
+```
 
 ---
 
-## API Endpoints
+## Technical Considerations
 
-### Event Requests
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/event-requests` | Authenticated | Submit a new event request |
-| GET | `/api/event-requests` | Instructor/Admin | List all requests (filterable by status) |
-| GET | `/api/event-requests/mine` | Authenticated | List own submissions |
-| PUT | `/api/event-requests/{id}/approve` | Instructor/Admin | Approve — creates Event automatically |
-| PUT | `/api/event-requests/{id}/reject` | Instructor/Admin | Reject with optional reason |
-| PUT | `/api/event-requests/{id}` | Submitter (pending only) | Edit own pending request |
-| DELETE | `/api/event-requests/{id}` | Submitter (pending only) | Withdraw own pending request |
-
-### Award Requests
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/award-requests` | Authenticated | Submit a new award nomination |
-| GET | `/api/award-requests` | Instructor/Admin | List all requests (filterable by status) |
-| GET | `/api/award-requests/mine` | Authenticated | List own submissions |
-| PUT | `/api/award-requests/{id}/approve` | Instructor/Admin | Approve — creates Award automatically |
-| PUT | `/api/award-requests/{id}/reject` | Instructor/Admin | Reject with optional reason |
-| PUT | `/api/award-requests/{id}` | Submitter (pending only) | Edit own pending request |
-| DELETE | `/api/award-requests/{id}` | Submitter (pending only) | Withdraw own pending request |
+- New `REQUEST` table and `RequestsController` required
+- Students: `POST /api/requests` (create), `GET /api/requests/mine` (view own)
+- Admins: `GET /api/requests` (all pending), `PUT /api/requests/{id}` (update status + note)
+- Frontend: a simple "Submit a Request" form accessible from the dashboard, and a request history view
+- Admin queue lives in the admin page (see `FUTURE_ADMIN_PAGE.md`)
 
 ---
 
-## Frontend Changes
+## Complexity
 
-### For All Users
-- **Events page** — "Request an Event" button opens a submission form
-- **Dashboard Awards section** — "Nominate for Award" button opens a nomination form
-- **Student profile** — "Nominate for Award" button visible on other users' profiles
-- **My Dashboard** — new "My Requests" section showing submitted requests with status badges
-
-### For Instructors / Admins
-- **Admin Panel** — new "Pending Requests" section with approve/reject controls for both event and award requests
-- Approved requests auto-populate the Events and Awards sections immediately
+**Medium** — new table and two controller endpoints; frontend form and admin queue view are straightforward.
 
 ---
 
-## Business Rules
-
-- Users may only edit or withdraw their own requests while status is `pending`
-- Approving a request creates the canonical Event or Award record — the request itself is kept for audit purposes
-- Rejecting a request does not delete it — it remains visible to the submitter with the rejection reason
-- Admins retain sole delete authority over approved Events and Awards
-- A single user may not submit duplicate pending requests for the same event title within 30 days (duplicate check at application layer)
-
----
-
-## Implementation Order (When Ready)
-
-1. Add `EVENT_REQUEST` and `AWARD_REQUEST` models and EF migration
-2. Build `EventRequestsController` and `AwardRequestsController`
-3. Add "My Requests" section to dashboard
-4. Add submission forms to Events page and student profiles
-5. Add "Pending Requests" section to Admin Panel
-6. Add approve/reject logic that auto-creates Event/Award on approval
-
----
-
-**Last updated:** April 2026  
-**Author:** JayWiki Development  
-**See also:** `LESSONS_LEARNED.md`, `DB_SCHEMA.md`
+*Last Updated: May 2026*

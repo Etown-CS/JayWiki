@@ -1,120 +1,66 @@
-# Future Feature: Dedicated Admin Page
+# Future Admin Page — JayWiki
 
-**Status:** Planned — not yet implemented  
-**Target:** Post-v1.0 enhancement  
-**Related roles:** Instructor / Admin only
+← Back to [FUTURE_IMPLEMENTATIONS.md](./FUTURE_IMPLEMENTATIONS.md)
 
----
-
-## Overview
-
-Currently, admin functionality (course catalog management, event management, and award management) is embedded as a panel in the right sidebar of the Dashboard. This works for an MVP but has limitations as the platform grows — the sidebar panel is space-constrained, difficult to extend, and mixes administrative concerns with personal portfolio content.
-
-A future version should move all admin functionality to a **dedicated `/admin` page** accessible only to users with the `instructor` or `admin` role.
+A dedicated admin interface, separate from the standard student dashboard, for managing the JayWiki platform at a departmental level.
 
 ---
 
-## Why a Separate Page
+## Problem
 
-- **Space** — the sidebar panel is compact by design. Bulk operations, search, filtering, and pagination don't fit cleanly in a 300px sidebar.
-- **Separation of concerns** — admin tools are platform management, not personal portfolio content. They don't belong on the same page as a user's profile.
-- **Extensibility** — a dedicated page makes it much easier to add new admin sections (user management, request approval, analytics) without cluttering the dashboard.
-- **Auditability** — a dedicated route makes it easier to gate, log, and control access separately from the dashboard.
+Currently, admin-only actions (role assignment, course catalog management, event creation) are accessible via API but have no dedicated UI surface. Admins must either use the same dashboard as students or interact with the API directly.
 
 ---
 
-## Proposed Route
+## Goals
 
-```
-/admin
-```
-
-Protected by `authGuard` + a role guard that redirects non-admins to `/dashboard`.
+- Give admins a clearly separated interface that reflects their elevated permissions
+- Surface management actions that are not relevant to students (user role changes, account merges, bulk operations)
+- Make the platform maintainable by department staff post-handoff without requiring API access
 
 ---
 
-## Proposed Layout
+## Proposed Features
 
-Full-width page with a left sidebar for admin navigation and a main content area:
+### User Management
+- View all registered users with role, provider, and registration date
+- Promote/demote users between `student`, `instructor`, and `admin` roles
+- Merge accounts (see item 2 in `FUTURE_IMPLEMENTATIONS.md`)
+- Deactivate or delete accounts
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Nav (JayWiki top bar)                               │
-├──────────────┬──────────────────────────────────────┤
-│              │                                      │
-│  Admin Nav   │   Main Content Area                  │
-│              │                                      │
-│  📚 Courses  │   (selected section renders here)    │
-│  📅 Events   │                                      │
-│  🏆 Awards   │                                      │
-│  👥 Users    │                                      │
-│  📋 Requests │                                      │
-│              │                                      │
-└──────────────┴──────────────────────────────────────┘
-```
+### Course Catalog Management
+- Full CRUD for `COURSE_CATALOG` entries in a dedicated table UI
+- View which students are enrolled in each catalog entry
+- Bulk import courses from a CSV or institutional data feed
 
----
+### Event & Award Management
+- Create, edit, and delete events
+- Manage awards associated with events
+- View registration lists per event
 
-## Sections to Include
+### Request Queue
+- Review and action pending student requests (see `FUTURE_REQUEST_SYSTEM.md`)
+- Approve, reject, or modify requested changes with an optional response message
 
-### Course Catalog
-- Full searchable/filterable table of all catalog entries
-- Inline edit and delete
-- Bulk import (CSV upload)
-- Add new entry form
-
-### Events
-- Full list with pagination
-- Create, edit, delete
-- View registrations per event
-- Approve/reject event requests (see `FUTURE_REQUEST_SYSTEM.md`)
-
-### Awards
-- Full list with pagination
-- Create, edit, delete
-- Assign to users with optional event link
-- Approve/reject award nominations (see `FUTURE_REQUEST_SYSTEM.md`)
-
-### User Management *(not yet built)*
-- List all users with role badges
-- Promote/demote users between student, instructor, admin roles
-- View user profiles and activity
-- Deactivate accounts
-
-### Pending Requests *(not yet built — see `FUTURE_REQUEST_SYSTEM.md`)*
-- Unified inbox of pending event and award requests
-- Approve or reject with optional reason
-- Filter by type and status
+### Analytics Overview
+- Basic stats: total users, projects, courses, events by semester
+- Connects naturally to Power BI Embedded (see `FUTURE_API_CONNECTIONS.md`)
 
 ---
 
-## Migration Plan
+## Technical Considerations
 
-When the dedicated admin page is built:
-
-1. Create `features/admin/admin.ts` + `admin.html` with the full-width layout
-2. Add the `/admin` route to `app.routes.ts` with `canActivate: [authGuard, adminGuard]`
-3. Create `core/guards/admin.guard.ts` that checks `user.role === 'instructor' || user.role === 'admin'`
-4. Move `AdminPanel` component logic into feature-specific sub-components under `features/admin/`
-5. Remove `<app-admin-panel>` from `dashboard.html`
-6. Add an "Admin" link to `nav.html` visible only to instructors/admins
+- Should be a separate lazy-loaded Angular route (e.g., `/admin`) with an `AdminGuard` that checks `currentUser.Role === 'admin'`
+- Backend already enforces role checks at the API layer — the admin page is a UI concern only
+- Consider a separate `AdminModule` or set of standalone components under `src/app/admin/`
+- No new API endpoints required for most features — existing instructor/admin-gated endpoints cover the majority of actions
 
 ---
 
-## Nav Link
+## Complexity
 
-When the admin page exists, add a conditional link to the nav:
-
-```html
-<a *ngIf="auth.currentUser?.role === 'instructor' || auth.currentUser?.role === 'admin'"
-   routerLink="/admin"
-   class="...">
-  Admin
-</a>
-```
+**High** — primarily a frontend effort. Most backend enforcement already exists.
 
 ---
 
-**Last updated:** April 2026  
-**Author:** JayWiki Development  
-**See also:** `FUTURE_REQUEST_SYSTEM.md`, `LESSONS_LEARNED.md`
+*Last Updated: May 2026*
